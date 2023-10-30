@@ -1,0 +1,6 @@
+chemtsv2 pip
+scipy
+sklearn
+xtb conda-forge
+vina
+pandas

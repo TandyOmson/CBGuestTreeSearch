@@ -2,13 +2,13 @@
 c_val: 1.0
 # threshold_type: [time, generation_num]
 threshold_type: generation_num
-hours: 1
+#hours: 0.01
 generation_num: 300
-output_dir: result/vina1
+output_dir: result/example01
 model_setting:
-  model_json: model/model.tf25.json
-  model_weight: model/model.tf25.best.ckpt.h5
-token: model/tokens.pkl
+  model_json: model/model_chembl220k.tf25.json
+  model_weight: model/model_chembl220k.tf25.best.ckpt.h5
+token: model/tokens_chembl220k.pkl
 reward_setting:
   reward_module: reward.Vina_reward
   reward_class: Vina_reward
@@ -59,15 +59,13 @@ include_filter_result_in_reward: False
 
 # User setting
 vina_sf_name: vina
-vina_cpus: 36
-vina_receptor: data/host.pdbqt
-vina_center: [0, 0, 0]
-vina_box_size: [24, 24, 24]
+vina_cpus: 8
+vina_receptor: data/1iep_receptor.pdbqt
+vina_center: [15.190, 53.903, 16.917]
+vina_box_size: [20, 20, 20]
 vina_spacing: 0.375
 vina_exhaustiveness: 32
 vina_n_poses: 10
 vina_base_score: -20
 vina_min_rmsd: 1.0
 vina_max_evals: 0
-
-debug: True

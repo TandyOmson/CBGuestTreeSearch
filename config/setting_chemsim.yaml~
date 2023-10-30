@@ -2,16 +2,16 @@
 c_val: 1.0
 # threshold_type: [time, generation_num]
 threshold_type: generation_num
-hours: 1
+hours: 3
 generation_num: 300
-output_dir: result/vina1
+output_dir: result/run221023
 model_setting:
   model_json: model/model.tf25.json
   model_weight: model/model.tf25.best.ckpt.h5
 token: model/tokens.pkl
 reward_setting:
-  reward_module: reward.Vina_reward
-  reward_class: Vina_reward
+  reward_module: reward.chem_sim_reward
+  reward_class: CBDock_reward
 
 # Advanced setting
 expansion_threshold: 0.995
@@ -22,7 +22,7 @@ policy_setting:
   policy_class: Ucb1
 
 # Restart setting
-save_checkpoint: False
+save_checkpoint: True
 restart: False
 checkpoint_file: chemtsv2.ckpt.pkl
 
@@ -45,11 +45,11 @@ sascore_filter:
   module: filter.sascore_filter
   class: SascoreFilter
   threshold: 3.5
-use_ring_size_filter: False
+use_ring_size_filter: True
 ring_size_filter:
   module: filter.ring_size_filter
   class: RingSizeFilter
-  threshold: 6
+  threshold: 4
 use_pains_filter: True
 pains_filter:
   module: filter.pains_filter
@@ -58,16 +58,14 @@ pains_filter:
 include_filter_result_in_reward: False
 
 # User setting
-vina_sf_name: vina
-vina_cpus: 36
-vina_receptor: data/host.pdbqt
-vina_center: [0, 0, 0]
-vina_box_size: [24, 24, 24]
-vina_spacing: 0.375
-vina_exhaustiveness: 32
-vina_n_poses: 10
-vina_base_score: -20
-vina_min_rmsd: 1.0
-vina_max_evals: 0
-
-debug: True
+host_pdbqt: reward/data/host_aligned.pdbqt
+host_sdf: reward/data/host_aligned.sdf
+host_en: -157089.5126460131
+molgen_n_confs: 6
+molgen_rmsd_threshold: 0.35
+vina_num_rotations: 5
+vina_num_translations: 5
+xtb_tempdir: reward/xtbtmp
+complexsdfout: reward/data/complexes.sdf
+centroid_diff_threshold: 4
+cavity_atoms_threshold: 6

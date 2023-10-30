@@ -1,0 +1,29 @@
+----------------------------
+Wed Oct 18 17:34:26 +08 2023
+Andy Thomson
+----------------------------
+The MCTS program runs by inserting the reward function (ie the Chemistry Simualator, or ChemInfo descriptors) into the MCTS class object in main() (as the reward_calculator attribute)
+Methods get_objective_functions and calc_reward_from_objective_values within the reward functions are then called in evaluate_node/backpropagation function in utils.
+
+Conformer generation occurs within the reward function, and the filters applied pre-backpropagation are actually just ChemInfo based. So the best way of filtering by conformer is after conformer gen. If a molecule is rejected, simply return a reward of 0.
+
+That being said, I am now going to write the chemistry simulator as a reward function.
+
+CHEM SIM
+--------
+1. Conformer gen from SMILES. Get several conformers, take the best n candidates. (hyperparameter tuning tbd)
+
+2. Dock score some of the conformers
+
+3. Filter the top conformer by geometric filter criteria
+
+4. xTB optimise the top complexes if they are very close (hyperparamter tuning a tolerance for how close they should be, maybe the average that the energy changes by during optimisation?)
+
+5. Finally evaluate the best complex and guest with frequency and solvent correction.
+
+6. Calculate binding affinity.
+
+NOTES
+-----
+I need to consider changing evaluate node. It does some filtering, and I might just want it to feed the SMILES string to the chem sim.
+For now, I will receive whatever mol object comes out of the evalutae node filtering and pass it to chem sim.
