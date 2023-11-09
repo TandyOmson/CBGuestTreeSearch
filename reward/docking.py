@@ -5,21 +5,6 @@ from meeko import MoleculePreparation, PDBQTWriterLegacy
 import numpy as np
 from sklearn.decomposition import PCA
 
-
-def modify_pdbqt_str(pdbqt_str, new_coords):
-    """ Changes the coordinates of a pdbqt string to new coordinates
-    """
-    pdbqt_lines = pdbqt_str.split('\n')
-    new_pdbqt_lines = []
-    i = 0
-    for line in pdbqt_lines:
-        if line[:4]=='ATOM': 
-            line = line[:30] + '%8.3f%8.3f%8.3f' % (new_coords[i,0], new_coords[i,1], new_coords[i,2]) + line[54:]
-            i += 1
-        new_pdbqt_lines.append(line)
-    new_pdbqt_str = '\n'.join(new_pdbqt_lines)
-    return new_pdbqt_str
-
 def align_mol(mol):
     """ Align principal axis of a molecule along the z axis 
     """
@@ -81,52 +66,6 @@ def transform_coords(coords, rotate_by, translate_by):
 
     return coords
 
-def score_map(mol, hostmol, num_rot, num_tra, vinaobj, pdbqt_str):
-    """ Screens across a set of rotations and translations
-    """
-    aligned_coords = align_mol(mol)
-    
-    meeko_prep = MoleculePreparation(merge_these_atom_types=[])
-    mol_setups = meeko_prep.prepare(mol)
-    for setup in mol_setups:
-        pdbqt_setup, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
-        if is_ok:
-            pdbqt_setup_final = pdbqt_setup
-    pdbqt_str = modify_pdbqt_str(pdbqt_setup_final, align_mol(mol))
-    aligned_coords = align_mol(mol)
-    
-    # Create 2d grid of rotations and translations
-    rotations = np.linspace(0,90,num_rot)
-    translations = np.linspace(0,4,num_tra)
-    scores = np.zeros((num_rot,num_tra))
-
-    # Screen across rotations and translations
-    for i,rotate_by in enumerate(rotations):
-        for j,translate_by in enumerate(translations):
-            new_coords = transform_coords(aligned_coords, rotate_by=rotate_by, translate_by=translate_by)
-            vinaobj.set_ligand_from_string(modify_pdbqt_str(pdbqt_str, new_coords))
-            vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
-            scores[i,j] = vinaobj.score()[0]
-
-    # Find minimum score, and the rotation and translation that gave it
-    min_score = np.min(scores)
-    min_score_index = np.where(scores==min_score)
-
-    min_transformation = (rotations[min_score_index[0][0]], translations[min_score_index[1][0]])
-    transformed_coords = transform_coords(aligned_coords, min_transformation[0], min_transformation[1])
-    
-    newmol = Chem.RWMol(mol)
-    for index,atm in enumerate(mol.GetAtoms()):
-            newmol.GetConformer().SetAtomPosition(atm.GetIdx(),transformed_coords[index])
-            min_conf = newmol.GetConformer()
-    newmol.RemoveAllConformers()
-    newmol.AddConformer(min_conf)
-
-    min_complex = Chem.CombineMols(hostmol, newmol)
-
-    return min_complex, min_score
-
-
 def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     """ Uses the mmff94 force field to optimise just a few poses, instead of using vina score.
     """
@@ -178,3 +117,62 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     finalcomplex.AddConformer(min_conf)
     
     return finalcomplex, min_score
+
+def modify_pdbqt_str(pdbqt_str, new_coords):
+    """ Changes the coordinates of a pdbqt string to new coordinates
+    """
+    pdbqt_lines = pdbqt_str.split('\n')
+    new_pdbqt_lines = []
+    i = 0
+    for line in pdbqt_lines:
+        if line[:4]=='ATOM': 
+            line = line[:30] + '%8.3f%8.3f%8.3f' % (new_coords[i,0], new_coords[i,1], new_coords[i,2]) + line[54:]
+            i += 1
+        new_pdbqt_lines.append(line)
+    new_pdbqt_str = '\n'.join(new_pdbqt_lines)
+    return new_pdbqt_str
+
+def score_map_vina(mol, hostmol, num_rot, num_tra, vinaobj, pdbqt_str):
+    """ Screens across a set of rotations and translations
+    """
+    aligned_coords = align_mol(mol)
+    
+    meeko_prep = MoleculePreparation(merge_these_atom_types=[])
+    mol_setups = meeko_prep.prepare(mol)
+    for setup in mol_setups:
+        pdbqt_setup, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
+        if is_ok:
+            pdbqt_setup_final = pdbqt_setup
+    pdbqt_str = modify_pdbqt_str(pdbqt_setup_final, align_mol(mol))
+    aligned_coords = align_mol(mol)
+    
+    # Create 2d grid of rotations and translations
+    rotations = np.linspace(0,90,num_rot)
+    translations = np.linspace(0,4,num_tra)
+    scores = np.zeros((num_rot,num_tra))
+
+    # Screen across rotations and translations
+    for i,rotate_by in enumerate(rotations):
+        for j,translate_by in enumerate(translations):
+            new_coords = transform_coords(aligned_coords, rotate_by=rotate_by, translate_by=translate_by)
+            vinaobj.set_ligand_from_string(modify_pdbqt_str(pdbqt_str, new_coords))
+            vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
+            scores[i,j] = vinaobj.score()[0]
+
+    # Find minimum score, and the rotation and translation that gave it
+    min_score = np.min(scores)
+    min_score_index = np.where(scores==min_score)
+
+    min_transformation = (rotations[min_score_index[0][0]], translations[min_score_index[1][0]])
+    transformed_coords = transform_coords(aligned_coords, min_transformation[0], min_transformation[1])
+    
+    newmol = Chem.RWMol(mol)
+    for index,atm in enumerate(mol.GetAtoms()):
+            newmol.GetConformer().SetAtomPosition(atm.GetIdx(),transformed_coords[index])
+            min_conf = newmol.GetConformer()
+    newmol.RemoveAllConformers()
+    newmol.AddConformer(min_conf)
+
+    min_complex = Chem.CombineMols(hostmol, newmol)
+
+    return min_complex, min_score
