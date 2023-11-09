@@ -31,7 +31,7 @@ def fix_charge(mol):
 """ XTB METHODS """
 
 def get_opt(mol, outfile, conf):
-    """ Optimises the xTB energy and retrieves energy
+    """ Calls methods to optimise a mol and retrieve energy
     """
     orgdir = os.getcwd()
     os.chdir(conf["xtb_tempdir"])

@@ -66,6 +66,8 @@ def transform_coords(coords, rotate_by, translate_by):
 
     return coords
 
+""" MMFF94 METHOD """
+
 def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     """ Uses the mmff94 force field to optimise just a few poses, instead of using vina score.
     """
@@ -96,6 +98,8 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
                 conf.SetAtomPosition(atm.GetIdx(), new_coords[index])
             mol.AddConformer(conf, assignId=True)
 
+    # BREAKPOINT COULD BE ANOTHER FUNCTION, WE NOW HAVE A SET OF POSES STORED IN MOL OBJECT
+
     # Combine each of the poses with the host and calculate scores
     for i in range(len(mol.GetConformers())-1):
         newhost = Chem.Conformer(hostmol.GetConformer(0))
@@ -107,16 +111,24 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     
     print("MMFF optimising complexes")
     # Optimise the conformers    
-    mmff_res = AllChem.MMFFOptimizeMoleculeConfs(complexconfs)
+    mmff_res = AllChem.MMFFOptimizeMoleculeConfs(complexconfs, numThreads=0)
     scores = np.array([i[1] for i in mmff_res])
-    min_score = np.min(scores)
-    min_conf = complexconfs.GetConformer(int(np.where(scores==min_score)[0][0]))
+    
+    #min_score = np.min(scores)
+    #min_conf = complexconfs.GetConformer(int(np.where(scores==min_score)[0][0]))
 
+    # Sort the conformers by score and assign IDs in ascending order
+    score_confids = np.argsort(scores)
+    scores = np.sort(scores)
+    
     finalcomplex = Chem.Mol(complexconfs)
     finalcomplex.RemoveAllConformers()
-    finalcomplex.AddConformer(min_conf)
+    for i in score_confids:
+        finalcomplex.AddConformer(complexconfs.GetConformer(i), assignId=True)
     
-    return finalcomplex, min_score
+    return finalcomplex, scores
+
+""" VINA METHODS """
 
 def modify_pdbqt_str(pdbqt_str, new_coords):
     """ Changes the coordinates of a pdbqt string to new coordinates
