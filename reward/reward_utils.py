@@ -53,7 +53,7 @@ def xtb_opt(filename, outfile):
     """ Optimises from an sdf file """
 
     sp.run(["obabel","-isdf","-osdf",f"{filename}","-O",f"{filename}"],stderr=sp.DEVNULL)
-    sp.run(["xtb",f"{filename}","--opt","crude","--alpb","water"],stdout=open(outfile,"w"),stderr=sp.DEVNULL)
+    sp.run(["xtb",f"{filename}","--ohess","normal","--alpb","water"],stdout=open(outfile,"w"),stderr=sp.DEVNULL)
     
     return outfile
 

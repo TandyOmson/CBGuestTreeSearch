@@ -1,0 +1,14 @@
+# DOCKERFILE FOR RUNNING TENSORFLOW IN PROGRAM
+# FIRSTLY PROGRAM MUST BE SCPED INTO THE VM
+FROM tensorflow/tensorflow:latest-gpu
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install pandas
+RUN pip install pandas \
+    pip install selfies \
+    pip install pyyaml \
+    pip install nose \
+#    pip install chemtsv2 \ Not compatible with the latest tensorflow GPU. but not required either
+    pip install rdkit
