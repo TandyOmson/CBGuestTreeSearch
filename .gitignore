@@ -134,6 +134,11 @@ dmypy.json
 # User define
 result/
 !result/.gitkeep
+reward/molsout/
+!reward/molsout/.gitkeep
+reward/xtbtmp
+!reward/xtbmp/.gitkeep
+
 config/*_c*.yaml
 !config/*_chro*.yaml
 model/backup/
@@ -142,9 +147,7 @@ model/backup/
 *.pstats
 docs/
 test_/
-Untitled.ipynb
 chemts.yml
 anime.gif
 data/fpscores.pkl.gz
 data/sascorer.py
-molsout/
