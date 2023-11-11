@@ -71,6 +71,8 @@ def transform_coords(coords, rotate_by, translate_by):
 def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     """ Uses the mmff94 force field to optimise just a few poses, instead of using vina score.
     """
+
+    #print("DOCKING - aligning guest")
     # Conformer 1: principal axis of guest aligned with axis through the cavity of the CB (z-axis)
     aligned_coords = align_mol(mol)
     
@@ -87,6 +89,8 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     rotations = np.linspace(0,90,num_rot)
     translations = np.linspace(0,4,num_tra)
 
+    #print("DOCKING - performing transformations")
+
     # Screen across rotations and translations
     for rotate_by in rotations:
         for translate_by in translations:
@@ -98,18 +102,14 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
                 conf.SetAtomPosition(atm.GetIdx(), new_coords[index])
             mol.AddConformer(conf, assignId=True)
 
-    # BREAKPOINT COULD BE ANOTHER FUNCTION, WE NOW HAVE A SET OF POSES STORED IN MOL OBJECT
-
     # Combine each of the poses with the host and calculate scores
-    for i in range(len(mol.GetConformers())-1):
-        newhost = Chem.Conformer(hostmol.GetConformer(0))
-        hostmol.AddConformer(newhost, assignId=True)
     complexconfs = Chem.CombineMols(hostmol, mol)
 
     # Add relevant info for optimisation
     Chem.GetSSSR(complexconfs)
+
+    #print("DOCKING - performing MMFF94 optimsiation on poses")
     
-    print("MMFF optimising complexes")
     # Optimise the conformers    
     mmff_res = AllChem.MMFFOptimizeMoleculeConfs(complexconfs, numThreads=0)
     scores = np.array([i[1] for i in mmff_res])
@@ -117,9 +117,11 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     #min_score = np.min(scores)
     #min_conf = complexconfs.GetConformer(int(np.where(scores==min_score)[0][0]))
 
+    #print("DOCKING - scoring poses")
+
     # Sort the conformers by score and assign IDs in ascending order
-    score_confids = np.argsort(scores)
-    scores = np.sort(scores)
+    score_confids = [int(i) for i in np.argsort(scores)]
+    scores = [float(i) for i in np.sort(scores)]
     
     finalcomplex = Chem.Mol(complexconfs)
     finalcomplex.RemoveAllConformers()

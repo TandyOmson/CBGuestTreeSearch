@@ -64,13 +64,13 @@ def rmsd_filter(mol, ref_conf, conf_energies, threshold):
 
 def process_smi(mol, n_confs, rmsd_threshold):
     n = how_many_conformers(mol)
-    print(f"init pool size {n}", file = sys.stderr)
+    #print(f"init pool size {n}", file = sys.stderr)
     mol_H = Chem.AddHs(mol)
     res = Chem.Mol(mol_H)
     res.RemoveAllConformers()
-    print("generating starting conformers ...", file = sys.stderr)
+    #print("generating starting conformers ...", file = sys.stderr)
     conf_energies = []
-    print("FF minimization ...", file = sys.stderr)
+    #print("FF minimization ...", file = sys.stderr)
     for cid in AllChem.EmbedMultipleConfs(mol_H, n):
         ff = AllChem.UFFGetMoleculeForceField(mol_H, confId = cid)
         # print("E before: %f" % ff.CalcEnergy())
@@ -84,7 +84,7 @@ def process_smi(mol, n_confs, rmsd_threshold):
     conf_energies = sorted(conf_energies, key = lambda x: x[0])
     # output non neighbor conformers
     kept = 0
-    print("RMSD pruning ...", file = sys.stderr)
+    #print("RMSD pruning ...", file = sys.stderr)
     while kept < n_confs and len(conf_energies) > 0:
         (e, conf) = conf_energies.pop(0)
         kept += 1
@@ -94,6 +94,6 @@ def process_smi(mol, n_confs, rmsd_threshold):
             rdMolAlign.AlignMol(res, res, prbCid = cid, refCid = 0)
         # remove neighbors
         conf_energies = rmsd_filter(mol_H, conf, conf_energies, rmsd_threshold)
-    print("kept %d confs" % (kept), file = sys.stderr)
+    #print("kept %d confs" % (kept), file = sys.stderr)
 
     return res
