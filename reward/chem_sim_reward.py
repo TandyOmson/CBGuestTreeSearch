@@ -80,7 +80,7 @@ class CBDock_reward(Reward):
                     complexmol.RemoveAllConformers()
                     complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
                     break
-                elif i == len(complexmols.GetNumConformers())-1:
+                elif i == complexmols.GetNumConformers()-1:
                     print("END - Exo complex")
                     guestwriter.write(nullmol)
                     complexwriter.write(nullmol)

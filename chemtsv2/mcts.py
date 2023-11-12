@@ -5,6 +5,7 @@ import time
 import numpy as np
 import pandas as pd
 import pickle
+from rdkit import Chem
 
 from chemtsv2.utils import chem_kn_simulation, build_smiles_from_tokens,\
     evaluate_node, node_to_add, expanded_node, back_propagation
@@ -90,7 +91,9 @@ class MCTS:
             self.obj_column_names = [f.__name__ for f in self.reward_calculator.get_batch_objective_functions()]
         else:
             self.obj_column_names = [f.__name__ for f in self.reward_calculator.get_objective_functions(self.conf)]
-        self.output_path = os.path.join(conf['output_dir'], f"result_C{conf['c_val']}.csv")
+        self.obj_column_names.append("mol")
+        self.output_pkl_path = os.path.join(conf['output_dir'], f"result_C{conf['c_val']}.pkl")
+        self.output_csv_path = os.path.join(conf['output_dir'], f"result_C{conf['c_val']}.csv")
         if os.path.exists(self.output_path) and not conf['restart']:
             sys.exit(f"[ERROR] {self.output_path} already exists. Please specify a different file name.")
 
@@ -107,6 +110,7 @@ class MCTS:
             sys.exit("[ERROR] Specify 'threshold_type': [time, generation_num]")
 
     def flush(self):
+        """ Output the results to a csv file and a pickle file, clears object for next molecule """
         
         df = pd.DataFrame({
             "generated_id": self.generated_id_list,
@@ -116,12 +120,21 @@ class MCTS:
             "elapsed_time": self.elapsed_time_list,
             "is_through_filter": self.filter_check_list,
         })
+        for idx, i in enumerate(self.objective_values_list):
+            if isinstance(i, Chem.rdchem.Mol):
+                self.objective_values_list[idx] = i.GetDoubleProp("binding_en")
+                self.objective_values_list.append(i)
         df_obj = pd.DataFrame(self.objective_values_list, columns=self.obj_column_names)
         df = pd.concat([df, df_obj], axis=1)
-        if os.path.exists(self.output_path):
-            df.to_csv(self.output_path, mode='a', index=False, header=False)
+        if os.path.exists(self.output_csv_path):
+            df.to_csv(self.output_csv_path, mode='a', index=False, header=False)
+            # Appending to a pickle requires some effort.
+            df_old = pd.read_pickle(self.output_pkl_path)
+            df = pd.concat([df_old, df], axis=0)
+            df.to_pickle(self.output_pkl_path)
         else:
-            df.to_csv(self.output_path, mode='w', index=False)
+            df.to_csv(self.output_csv_path, mode='w', index=False)
+            df.to_pickle(self.output_pkl_path)
         self.logger.info(f"save results at {self.output_path}")
 
         self.generated_id_list.clear()
