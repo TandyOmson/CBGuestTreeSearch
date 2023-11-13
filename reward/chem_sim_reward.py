@@ -103,84 +103,6 @@ class CBDock_reward(Reward):
 
             return get_property_mol(optcomplexmol)
         
-        def binding_en_VINA(mol):
-            """ Calculate values contributing to the reward arising from binding
-            """
-
-            if not _host_initialised:
-                _initialise_host(conf)
-
-            # Create a null molecule out (a molecule with no atoms) to keep indexes in output structure files
-            nullmol = Chem.MolFromSmiles("C")
-            nullmol.SetDoubleProp("en", 20.0)
-
-            # 1. Generate conformers
-            print("STATUS - generating conformers")
-            guestmol = process_smi(mol, conf["molgen_n_confs"],conf["molgen_rmsd_threshold"])
-            fix_charge(guestmol)
-
-            # If the guest is too large, set bad score
-            try:
-                is_small = is_small_cylinder(guestmol)
-            except:
-                print("END - bad conformer")
-                return get_property_mol(nullmol)
-                
-            if not is_small:
-                print("END = - guest too large")
-                return get_property_mol(nullmol)
-            
-            # 2. Dock the best conformer
-            # note that currently this takes the best result from docking. 
-            # I may want to do a quick optimisation on the top few complexes if they are very close together, but have large difference in pose
-            print("STATUS - docking")
-            complexmols, scores = score_map_vina(
-                guestmol,
-                hostmol,
-                conf["vina_num_rotations"],
-                conf["vina_num_translations"],
-                v
-                )
-            
-            # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
-            for i in range(complexmols.GetNumConformers()):
-                exo = is_exo(complexmols, hostmol, conf, confId=i)
-                if not exo:
-                    complexmol = Chem.Mol(complexmols)
-                    complexmol.RemoveAllConformers()
-                    complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
-                    break
-                elif i == complexmols.GetNumConformers()-1:
-                    print("END - Exo complex")
-                    return get_property_mol(nullmol)
-            
-            # 3. Calculate binding energy
-            try:
-                print("STATUS - optimising guest")
-                optguestmol, guest_en = get_opt(guestmol, "guestopt.out", conf)
-                print("STATUS - optimising complex")
-                optcomplexmol, complex_en = get_opt(complexmol, "complexopt.out", conf)
-            except:
-                print("END - couldn't optimise")
-                return get_property_mol(nullmol)
-            
-            # If the result of xTB optimisation is exo, set bad score
-            exo = is_exo(optcomplexmol, hostmol, conf)
-            if exo:
-                print("END - Exo complex")
-                return get_property_mol(nullmol)
-            
-            bind_en = complex_en - guest_en - host_en
-            optcomplexmol.SetDoubleProp("en", bind_en)
-
-            # For testing, add scores from binding poses
-            try:
-                for rank, i in enumerate(scores):
-                    optcomplexmol.SetDoubleProp("en_" + str(rank), i)
-            except:
-                print("NOTE - couldn't add pose scores to mol object")
-
-            return get_property_mol(optcomplexmol)
 
         def sa_scorer(mol):
             """ Calculate synthetic accessibility score
@@ -189,7 +111,7 @@ class CBDock_reward(Reward):
             
             return sa_score
             
-        return [binding_en, sa_scorer, binding_en_VINA]
+        return [binding_en, sa_scorer]
     
     def calc_reward_from_objective_values(values, conf):
         """ Must return a float based on results of objective functions (values) 
