@@ -71,8 +71,6 @@ def transform_coords(coords, rotate_by, translate_by):
 def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     """ Uses the mmff94 force field to optimise just a few poses, instead of using vina score.
     """
-
-    #print("DOCKING - aligning guest")
     # Conformer 1: principal axis of guest aligned with axis through the cavity of the CB (z-axis)
     aligned_coords = align_mol(mol)
     
@@ -89,8 +87,6 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     rotations = np.linspace(0,90,num_rot)
     translations = np.linspace(0,4,num_tra)
 
-    #print("DOCKING - performing transformations")
-
     # Screen across rotations and translations
     for rotate_by in rotations:
         for translate_by in translations:
@@ -105,19 +101,10 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
     # Combine each of the poses with the host and calculate scores
     complexconfs = Chem.CombineMols(hostmol, mol)
 
-    # Add relevant info for optimisation
+    # Optimise the confomers
     Chem.GetSSSR(complexconfs)
-
-    #print("DOCKING - performing MMFF94 optimsiation on poses")
-    
-    # Optimise the conformers    
     mmff_res = AllChem.MMFFOptimizeMoleculeConfs(complexconfs, numThreads=0)
     scores = np.array([i[1] for i in mmff_res])
-    
-    #min_score = np.min(scores)
-    #min_conf = complexconfs.GetConformer(int(np.where(scores==min_score)[0][0]))
-
-    #print("DOCKING - scoring poses")
 
     # Sort the conformers by score and assign IDs in ascending order
     score_confids = [int(i) for i in np.argsort(scores)]
@@ -157,36 +144,58 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, vinaobj, pdbqt_str):
         pdbqt_setup, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
         if is_ok:
             pdbqt_setup_final = pdbqt_setup
-    pdbqt_str = modify_pdbqt_str(pdbqt_setup_final, align_mol(mol))
-    aligned_coords = align_mol(mol)
+    pdbqt_str = modify_pdbqt_str(pdbqt_setup_final, aligned_coords)
     
     # Create 2d grid of rotations and translations
     rotations = np.linspace(0,90,num_rot)
     translations = np.linspace(0,4,num_tra)
-    scores = np.zeros((num_rot,num_tra))
+    scores = []
+
+    # Score original conformer
+    vinaobj.set_ligand_from_string(pdbqt_str)
+    vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
+    scores.append(vinaobj.score()[0])
+
+    # Conformer 2: flip the guest 90 degrees about the x axis (means it probably wont fit, so will not screen in this direction)
+    rotation_matrix = np.array([[np.cos(90),-np.sin(90),0], [np.sin(90), np.cos(90), 0], [0,0,1]])
+    rotation_coords = np.matmul(rotation_matrix,aligned_coords.T).T
+
+    rotconf = Chem.Conformer(mol.GetConformer(0))
+    for index, atm in enumerate(mol.GetAtoms()):
+        rotconf.SetAtomPosition(atm.GetIdx(), rotation_coords[index])
+    mol.AddConformer(rotconf, assignId=True)
+    # Score flipped conformer
+    vinaobj.set_ligand_from_string(modify_pdbqt_str(pdbqt_str, rotation_coords))
+    vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
+    scores.append(vinaobj.score()[0])
 
     # Screen across rotations and translations
-    for i,rotate_by in enumerate(rotations):
-        for j,translate_by in enumerate(translations):
+    for rotate_by in rotations:
+        for translate_by in translations:
             new_coords = transform_coords(aligned_coords, rotate_by=rotate_by, translate_by=translate_by)
+
+            # Assign conformer
+            conf = Chem.Conformer(mol.GetConformer(0))
+            for index, atm in enumerate(mol.GetAtoms()):
+                conf.SetAtomPosition(atm.GetIdx(), new_coords[index])
+            mol.AddConformer(conf, assignId=True)
+
+            # Score conformer
             vinaobj.set_ligand_from_string(modify_pdbqt_str(pdbqt_str, new_coords))
             vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
-            scores[i,j] = vinaobj.score()[0]
+            scores.append(vinaobj.score()[0])
 
-    # Find minimum score, and the rotation and translation that gave it
-    min_score = np.min(scores)
-    min_score_index = np.where(scores==min_score)
-
-    min_transformation = (rotations[min_score_index[0][0]], translations[min_score_index[1][0]])
-    transformed_coords = transform_coords(aligned_coords, min_transformation[0], min_transformation[1])
+    # Combine each of the poses with the host and calculate scores
+    complexconfs = Chem.CombineMols(hostmol, mol)
     
-    newmol = Chem.RWMol(mol)
-    for index,atm in enumerate(mol.GetAtoms()):
-            newmol.GetConformer().SetAtomPosition(atm.GetIdx(),transformed_coords[index])
-            min_conf = newmol.GetConformer()
-    newmol.RemoveAllConformers()
-    newmol.AddConformer(min_conf)
+    scores = np.array(scores)
+    # Sort the conformers by score and assign IDs in ascending order
+    score_confids = [int(i) for i in np.argsort(scores)]
+    scores = [float(i) for i in np.sort(scores)]
+    
+    finalcomplex = Chem.Mol(complexconfs)
+    finalcomplex.RemoveAllConformers()
+    for i in score_confids:
+        finalcomplex.AddConformer(complexconfs.GetConformer(i), assignId=True)
 
-    min_complex = Chem.CombineMols(hostmol, newmol)
-
-    return min_complex, min_score
+    return finalcomplex, scores
