@@ -4,7 +4,7 @@ from rdkit import Chem
 # Methods for reward calculations
 from reward.smi2sdf import process_smi
 from reward.docking import score_map_vina, score_map_mmff94
-from reward.reward_utils import fix_charge, get_opt, is_small_cylinder, is_exo
+from reward.reward_utils import fix_charge, get_opt, is_small_cylinder, is_exo, get_property_mol
 from reward.sascorer import calculateScore
 
 # Can inherit from the batchReward abstract class
@@ -28,7 +28,8 @@ class CBDock_reward(Reward):
                 _initialise_host(conf)
 
             # Create a null molecule out (a molecule with no atoms) to keep indexes in output structure files
-            nullmol = Chem.MolFromSmiles("C")
+            nullmol = Chem.MolFromSmiles("C")#
+            nullmol.SetDoubleProp("en", 20.0)
 
             # 1. Generate conformers
             print("STATUS - generating conformers")
@@ -40,15 +41,13 @@ class CBDock_reward(Reward):
                 is_small = is_small_cylinder(guestmol)
             except:
                 print("END - bad conformer")
-                guestwriter.write(nullmol)
-                complexwriter.write(nullmol)
-                return 20.3
+                return get_property_mol(nullmol)
                 
             if not is_small:
                 print("END = - guest too large")
                 guestwriter.write(nullmol)
                 complexwriter.write(nullmol)
-                return 20.0
+                return get_property_mol(nullmol)
             
             # 2. Dock the best conformer
             # note that currently this takes the best result from docking. 
@@ -62,15 +61,15 @@ class CBDock_reward(Reward):
                 )
             
             # Write out poses
-            pose_props = []
-            for i in range(complexmols.GetNumConformers()):
-                complexmols.SetDoubleProp(f"{i}_score", float(scores[i]))
-                pose_props.append(f"{i}_score")
+            #pose_props = []
+            #for i in range(complexmols.GetNumConformers()):
+            #    complexmols.SetDoubleProp(f"{i}_score", float(scores[i]))
+            #    pose_props.append(f"{i}_score")
                 
             #posewriter.SetProps(pose_props)
-            print("UPDATE - WRITING POSES")
-            for i in range(complexmols.GetNumConformers()):
-                posewriter.write(complexmols, confId=i)
+            #print("UPDATE - WRITING POSES")
+            #for i in range(complexmols.GetNumConformers()):
+            #    posewriter.write(complexmols, confId=i)
             
             # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
             for i in range(complexmols.GetNumConformers()):
@@ -84,7 +83,7 @@ class CBDock_reward(Reward):
                     print("END - Exo complex")
                     guestwriter.write(nullmol)
                     complexwriter.write(nullmol)
-                    return 20.2
+                    return get_property_mol(nullmol)
             
             # 3. Calculate binding energy
             try:
@@ -96,7 +95,7 @@ class CBDock_reward(Reward):
                 print("END - couldn't optimise")
                 guestwriter.write(nullmol)
                 complexwriter.write(nullmol)
-                return 20.1
+                return get_property_mol(nullmol)
             
             # If the result of xTB optimisation is exo, set bad score
             exo = is_exo(optcomplexmol, hostmol, conf)
@@ -104,14 +103,17 @@ class CBDock_reward(Reward):
                 print("END - Exo complex")
                 guestwriter.write(guestmol)
                 complexwriter.write(complexmol)
-                return 20.2
+                return get_property_mol(nullmol)
             
             # Write out molecules
             print("UPDATE - writing final structures")
             guestwriter.write(optguestmol)
             complexwriter.write(optcomplexmol)
             
-            return complex_en - guest_en - host_en
+            bind_en = complex_en - guest_en - host_en
+            optcomplexmol.SetDoubleProp("en", bind_en)
+
+            return get_property_mol(optcomplexmol)
 
         def sa_scorer(mol):
             """ Calculate synthetic accessibility score
@@ -125,7 +127,7 @@ class CBDock_reward(Reward):
     def calc_reward_from_objective_values(values, conf):
         """ Must return a float based on results of objective functions (values) 
         """
-        binding_en = values[0]
+        binding_en = float(values[0].GetProp("en"))
         #sa_score = values[1]
         print("score: ", binding_en)
 

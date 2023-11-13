@@ -11,6 +11,7 @@ isExo: determines if the guest is exohedrally bound
 
 from rdkit import Chem
 from rdkit.Chem import rdMolTransforms
+from rdkit.Chem import PropertyMol
 from scipy.spatial import Delaunay
 
 import subprocess as sp
@@ -149,3 +150,14 @@ def is_exo(complexmol, hostmol, conf, confId=0):
         isExo = True
 
     return isExo
+
+def get_property_mol(mol):
+    """ Helper function: for regular RDMol objects, properties are deleted when the molecule is modified or pickled.
+    This function returns a copy of the molecule as a PropertyMol, to be used when returning a Mol.
+    """
+    props = mol.GetPropsAsDict()
+    propmol = PropertyMol.PropertyMol(mol)
+    for key,val in props.items():
+        propmol.SetProp(key, val)
+
+    return propmol
