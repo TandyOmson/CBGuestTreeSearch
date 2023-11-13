@@ -28,7 +28,7 @@ class CBDock_reward(Reward):
                 _initialise_host(conf)
 
             # Create a null molecule out (a molecule with no atoms) to keep indexes in output structure files
-            nullmol = Chem.MolFromSmiles("C")#
+            nullmol = Chem.MolFromSmiles("C")
             nullmol.SetDoubleProp("en", 20.0)
 
             # 1. Generate conformers
@@ -45,8 +45,6 @@ class CBDock_reward(Reward):
                 
             if not is_small:
                 print("END = - guest too large")
-                guestwriter.write(nullmol)
-                complexwriter.write(nullmol)
                 return get_property_mol(nullmol)
             
             # 2. Dock the best conformer
@@ -60,17 +58,6 @@ class CBDock_reward(Reward):
                 conf["vina_num_translations"]
                 )
             
-            # Write out poses
-            #pose_props = []
-            #for i in range(complexmols.GetNumConformers()):
-            #    complexmols.SetDoubleProp(f"{i}_score", float(scores[i]))
-            #    pose_props.append(f"{i}_score")
-                
-            #posewriter.SetProps(pose_props)
-            #print("UPDATE - WRITING POSES")
-            #for i in range(complexmols.GetNumConformers()):
-            #    posewriter.write(complexmols, confId=i)
-            
             # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
             for i in range(complexmols.GetNumConformers()):
                 exo = is_exo(complexmols, hostmol, conf, confId=i)
@@ -81,8 +68,6 @@ class CBDock_reward(Reward):
                     break
                 elif i == complexmols.GetNumConformers()-1:
                     print("END - Exo complex")
-                    guestwriter.write(nullmol)
-                    complexwriter.write(nullmol)
                     return get_property_mol(nullmol)
             
             # 3. Calculate binding energy
@@ -93,22 +78,13 @@ class CBDock_reward(Reward):
                 optcomplexmol, complex_en = get_opt(complexmol, "complexopt.out", conf)
             except:
                 print("END - couldn't optimise")
-                guestwriter.write(nullmol)
-                complexwriter.write(nullmol)
                 return get_property_mol(nullmol)
             
             # If the result of xTB optimisation is exo, set bad score
             exo = is_exo(optcomplexmol, hostmol, conf)
             if exo:
                 print("END - Exo complex")
-                guestwriter.write(guestmol)
-                complexwriter.write(complexmol)
                 return get_property_mol(nullmol)
-            
-            # Write out molecules
-            print("UPDATE - writing final structures")
-            guestwriter.write(optguestmol)
-            complexwriter.write(optcomplexmol)
             
             bind_en = complex_en - guest_en - host_en
             optcomplexmol.SetDoubleProp("en", bind_en)
@@ -141,7 +117,8 @@ class CBDock_reward(Reward):
 def _initialise_host(conf):
     """ A "pseudo constructor" for the class containing only static methods, will only work these out at the start
     """
-    global _host_initialised, v, hostmol, host_en, guestwriter, complexwriter, posewriter
+    global _host_initialised, v, hostmol, host_en
+    #global guestwriter, complexwriter, posewriter
 
     v = vina.Vina(verbosity=0)
     # Note host must me aligned with z-axis
@@ -156,9 +133,9 @@ def _initialise_host(conf):
     # If using multiple properties, turn this into a dictionary
     host_en = conf["host_en"]
 
-    guestwriter = Chem.SDWriter(conf["molsoutdir"] + "/guests.sdf")
-    complexwriter = Chem.SDWriter(conf["molsoutdir"] + "/complexes.sdf")
-    posewriter = Chem.SDWriter(conf["molsoutdir"] + "/poses.sdf")
+    #guestwriter = Chem.SDWriter(conf["molsoutdir"] + "/guests.sdf")
+    #complexwriter = Chem.SDWriter(conf["molsoutdir"] + "/complexes.sdf")
+    #posewriter = Chem.SDWriter(conf["molsoutdir"] + "/poses.sdf")
 
     print("globvars set")
     
