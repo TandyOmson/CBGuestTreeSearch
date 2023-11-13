@@ -2,13 +2,13 @@
 c_val: 0.75
 # threshold_type: [time, generation_num]
 threshold_type: generation_num
-hours: 10
+hours: 0.5
 generation_num: 1000
-output_dir: result/run011123
+output_dir: result/testing
 model_setting:
-  model_json: model/model.tf25.json
-  model_weight: model/model.tf25.best.ckpt.h5
-token: model/tokens.pkl
+  model_json: model/8992HCs/model.tf25.json
+  model_weight: model/8992HCs/model.tf25.best.ckpt.h5
+token: model/8992HCs/tokens.pkl
 reward_setting:
   reward_module: reward.chem_sim_reward
   reward_class: CBDock_reward
@@ -67,11 +67,12 @@ molgen_rmsd_threshold: 0.35
 vina_num_rotations: 5
 vina_num_translations: 5
 xtb_tempdir: reward/xtbtmp
-complexsdfout: reward/data/complexes.sdf
 centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
 
+molsoutdir: reward/molsout
+
 # Parrallelisation strategy
-leaf_parallel: True
+leaf_parallel: False
 # Number of leaves simultaneously
 leaf_parallel_num: 4

@@ -115,4 +115,3 @@ dependencies:
       - werkzeug==2.2.3
       - wrapt==1.12.1
       - zipp==3.15.0
-prefix: /home/spine/miniconda3/envs/chemts
