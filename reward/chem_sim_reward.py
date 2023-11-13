@@ -41,9 +41,11 @@ class CBDock_reward(Reward):
                 is_small = is_small_cylinder(guestmol)
             except:
                 print("END - bad conformer")
+                nullmol.SetDoubleProp("en", 20.1)
                 return get_property_mol(nullmol)
                 
             if not is_small:
+                nullmol.SetDoubleProp("en", 20.2)
                 print("END = - guest too large")
                 return get_property_mol(nullmol)
             
@@ -68,6 +70,7 @@ class CBDock_reward(Reward):
                     break
                 elif i == complexmols.GetNumConformers()-1:
                     print("END - Exo complex")
+                    nullmol.SetDoubleProp("en", 20.3)
                     return get_property_mol(nullmol)
             
             # 3. Calculate binding energy
@@ -78,12 +81,14 @@ class CBDock_reward(Reward):
                 optcomplexmol, complex_en = get_opt(complexmol, "complexopt.out", conf)
             except:
                 print("END - couldn't optimise")
+                nullmol.SetDoubleProp("en", 20.4)
                 return get_property_mol(nullmol)
             
             # If the result of xTB optimisation is exo, set bad score
             exo = is_exo(optcomplexmol, hostmol, conf)
             if exo:
                 print("END - Exo complex")
+                nullmol.SetDoubleProp("en", 20.5)
                 return get_property_mol(nullmol)
             
             bind_en = complex_en - guest_en - host_en
