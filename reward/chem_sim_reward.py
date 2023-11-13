@@ -184,7 +184,7 @@ class CBDock_reward(Reward):
             
             return sa_score
             
-        return [binding_en_VINA, sa_scorer]
+        return [binding_en, sa_scorer, binding_en_VINA]
     
     def calc_reward_from_objective_values(values, conf):
         """ Must return a float based on results of objective functions (values) 
