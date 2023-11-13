@@ -17,6 +17,8 @@ from scipy.spatial import Delaunay
 import subprocess as sp
 import os
 import numpy as np
+from shutil import rmtree
+from glob import glob
 
 """ MOLECULE PREP METHODS """
 
@@ -35,7 +37,10 @@ def get_opt(mol, outfile, conf):
     """ Calls methods to optimise a mol and retrieve energy
     """
     orgdir = os.getcwd()
-    os.chdir(conf["xtb_tempdir"])
+    # Get current temp dirs
+    curr = glob("xtbtmp_*")
+    # Make new temp dir
+    os.mkdir(f"xtbtmp_{len(curr)+1}")
 
     Chem.MolToMolFile(mol,"mol.sdf",kekulize=False)
     xtb_opt("mol.sdf", outfile)
@@ -47,6 +52,7 @@ def get_opt(mol, outfile, conf):
     # Put the outfile somewhere? (Write a function to get the relevant information and deposit it in a filewriter)
     en = get_binding(outfile)
     os.chdir(orgdir)
+    rmtree(f"xtbtmp_{len(curr)+1}")
     
     return finalmol, en
 

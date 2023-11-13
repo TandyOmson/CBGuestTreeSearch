@@ -133,7 +133,7 @@ def modify_pdbqt_str(pdbqt_str, new_coords):
     new_pdbqt_str = '\n'.join(new_pdbqt_lines)
     return new_pdbqt_str
 
-def score_map_vina(mol, hostmol, num_rot, num_tra, vinaobj, pdbqt_str):
+def score_map_vina(mol, hostmol, num_rot, num_tra, vinaobj):
     """ Screens across a set of rotations and translations
     """
     aligned_coords = align_mol(mol)
