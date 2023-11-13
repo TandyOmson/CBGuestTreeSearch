@@ -66,11 +66,8 @@ molgen_n_confs: 6
 molgen_rmsd_threshold: 0.35
 vina_num_rotations: 5
 vina_num_translations: 5
-xtb_tempdir: reward/xtbtmp
 centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
-
-molsoutdir: reward/molsout
 
 # Parrallelisation strategy
 leaf_parallel: False

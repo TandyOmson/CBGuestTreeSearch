@@ -184,7 +184,7 @@ class CBDock_reward(Reward):
             
             return sa_score
             
-        return [binding_en, sa_scorer, binding_en_VINA]
+        return [binding_en_VINA, sa_scorer]
     
     def calc_reward_from_objective_values(values, conf):
         """ Must return a float based on results of objective functions (values) 
@@ -237,10 +237,8 @@ if __name__ == "__main__":
             "molgen_rmsd_threshold":0.35, 
             "vina_num_rotations":4, 
             "vina_num_translations":4, 
-            "xtb_tempdir":"xtbtmp",
             "centroid_diff_threshold": 4,
             "cavity_atoms_threshold": 6,
-            "molsoutdir":"molsout",
             }
     
     # Test molecule "Tropylium cation"

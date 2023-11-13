@@ -134,10 +134,6 @@ dmypy.json
 # User define
 result/
 !result/.gitkeep
-reward/molsout/
-!reward/molsout/.gitkeep
-reward/xtbtmp
-!reward/xtbmp/.gitkeep
 
 config/*_c*.yaml
 !config/*_chro*.yaml
