@@ -70,6 +70,6 @@ centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
 
 # Parrallelisation strategy
-leaf_parallel: False
+leaf_parallel: True
 # Number of leaves simultaneously
 leaf_parallel_num: 4
