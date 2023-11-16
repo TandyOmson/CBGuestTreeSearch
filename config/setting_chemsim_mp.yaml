@@ -33,7 +33,7 @@ lipinski_filter:
   module: filter.lipinski_filter
   class: LipinskiFilter
   type: rule_of_5
-use_radical_filter: False
+use_radical_filter: True
 radical_filter:
   module: filter.radical_filter
   class: RadicalFilter
