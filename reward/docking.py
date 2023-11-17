@@ -1,5 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
+import vina
 from meeko import MoleculePreparation, PDBQTWriterLegacy
 
 import numpy as np
@@ -103,7 +104,7 @@ def score_map_mmff94(mol, hostmol, num_rot, num_tra):
 
     # Optimise the confomers
     Chem.GetSSSR(complexconfs)
-    mmff_res = AllChem.MMFFOptimizeMoleculeConfs(complexconfs, numThreads=0)
+    mmff_res = AllChem.MMFFOptimizeMoleculeConfs(complexconfs, numThreads=0, ignoreInterfragInteractions=False)
     scores = np.array([i[1] for i in mmff_res])
 
     # Sort the conformers by score and assign IDs in ascending order
@@ -133,11 +134,14 @@ def modify_pdbqt_str(pdbqt_str, new_coords):
     new_pdbqt_str = '\n'.join(new_pdbqt_lines)
     return new_pdbqt_str
 
-def score_map_vina(mol, hostmol, num_rot, num_tra, vinaobj):
+def score_map_vina(mol, hostmol, num_rot, num_tra, host_pdbqt):
     """ Screens across a set of rotations and translations
     """
     aligned_coords = align_mol(mol)
-    
+    vinaobj = vina.Vina(verbosity=0)
+    # Note host must me aligned with z-axis
+    vinaobj.set_receptor(host_pdbqt)    
+
     meeko_prep = MoleculePreparation(merge_these_atom_types=[])
     mol_setups = meeko_prep.prepare(mol)
     for setup in mol_setups:
