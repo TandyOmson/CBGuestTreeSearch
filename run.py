@@ -140,6 +140,7 @@ def get_filter_modules(conf):
 
 
 def main():
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
     args = get_parser()
     with open(args.config, "r") as f:
         conf = yaml.load(f, Loader=yaml.SafeLoader)

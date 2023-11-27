@@ -128,6 +128,8 @@ if __name__ == "__main__":
     host_en = conf["host_en"]
     print("globvars set")
 
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
     df = pd.read_csv(conf["molecules_to_dock"], sep="\t", names=["name","smiles"], index_col=False)
     print(df)
     
