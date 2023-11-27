@@ -103,6 +103,7 @@ def sa_scorer(mol):
 if __name__ == "__main__":
 
     conf = {"host_pdbqt":"data/host_aligned.pdbqt",
+            "host_sdf":"data/host_aligned.sdf",
             "host_en":-157089.5126460131,
             "molgen_n_confs":1, 
             "molgen_rmsd_threshold":0.35, 
@@ -148,5 +149,8 @@ if __name__ == "__main__":
         df.loc[count,"c_en"] = complexmolcomb.GetDoubleProp("en")
         df.loc[count,"sa_score"] = sa_score
 
-        df.to_pickle("data/TestData/fewmols.pkl")
+        print("vina :", df.loc[count,"v_en"])
+        print("comb :", df.loc[count,"c_en"])
+        print("sa :", df.loc[count,"sa_score"])
 
+        df.to_pickle("data/TestData/fewmols.pkl")

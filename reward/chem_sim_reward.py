@@ -56,7 +56,8 @@ class CBDock_reward(Reward):
                 guestmol,
                 hostmol,
                 conf["vina_num_rotations"],
-                conf["vina_num_translations"]
+                conf["vina_num_translations"],
+                conf["host_pdbqt"]
                 )
             
             # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
