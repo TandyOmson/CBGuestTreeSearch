@@ -3,6 +3,7 @@
     docks the guest in the host, and runs an xTB optimisation calculating the binding energy.
     This effectively runs the chemistry simulation reward function, but without the RNN and MCTS.
 """
+import os
 from rdkit import Chem
 import pandas as pd
 
