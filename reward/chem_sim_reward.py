@@ -2,7 +2,7 @@ from rdkit import Chem
 
 # Methods for reward calculations
 from reward.smi2sdf import process_smi
-from reward.docking import score_map_mmff94, score_map_vina
+from reward.docking import score_map_vina, score_map_comb
 from reward.reward_utils import fix_charge, get_opt, is_small_cylinder, is_exo, get_property_mol
 from reward.sascorer import calculateScore
 
@@ -52,13 +52,22 @@ class CBDock_reward(Reward):
             # note that currently this takes the best result from docking. 
             # I may want to do a quick optimisation on the top few complexes if they are very close together, but have large difference in pose
             print("STATUS - docking")
-            complexmols, scores = score_map_vina(
-                guestmol,
-                hostmol,
-                conf["vina_num_rotations"],
-                conf["vina_num_translations"],
-                conf["host_pdbqt"]
-                )
+            try:
+                complexmols, scores = score_map_vina(
+                    guestmol,
+                    hostmol,
+                    conf["vina_num_rotations"],
+                    conf["vina_num_translations"],
+                    conf["host_pdbqt"]
+                    )
+            except:
+                complexmols, scores = score_map_comb(
+                    guestmol,
+                    hostmol,
+                    conf["vina_num_rotations"],
+                    conf["vina_num_translations"],
+                    conf["host_pdbqt"]
+                    ) 
             
             # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
             for i in range(complexmols.GetNumConformers()):

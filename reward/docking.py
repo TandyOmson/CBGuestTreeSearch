@@ -4,6 +4,8 @@ import vina
 from meeko import MoleculePreparation, PDBQTWriterLegacy, PDBQTMolecule, RDKitMolCreate
 
 import numpy as np
+from glob import glob
+import os
 from sklearn.decomposition import PCA
 
 def align_mol(mol):
@@ -134,6 +136,26 @@ def modify_pdbqt_str(pdbqt_str, new_coords):
     new_pdbqt_str = '\n'.join(new_pdbqt_lines)
     return new_pdbqt_str
 
+def vina_opt(guestmol, vinaobj):
+    preparator = MoleculePreparation(merge_these_atom_types=[])
+    mol_setups = preparator.prepare(guestmol)
+    for setup in mol_setups:
+        pdbqt_string, is_ok, _ = PDBQTWriterLegacy.write_string(setup)
+    if is_ok:
+        vinaobj.set_ligand_from_string(pdbqt_string)
+    opt_ens = vinaobj.optimize()
+
+    # Account for multiple workers
+    curr = glob("reward/vina_pose_*")
+    vinaobj.write_pose(f'reward/vina_pose_{len(curr)+1}.pdbqt', overwrite=True, remarks="")
+    pdbqt_mol = PDBQTMolecule.from_file(f'reward/vina_pose_{len(curr)+1}.pdbqt', skip_typing=True)
+    # Returns a list of rdkit mols
+    rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+
+    os.remove(f'reward/vina_pose_{len(curr)+1}.pdbqt')
+
+    return opt_ens[0], rdkitmols[0]
+
 def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     """ Screens across a set of rotations and translations
     """
@@ -150,23 +172,8 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     vinaobj.set_receptor(hostpdbqtfile)
     vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
 
-    def vina_opt(guestmol):
-        preparator = MoleculePreparation(merge_these_atom_types=[])
-        mol_setups = preparator.prepare(guestmol)
-        for setup in mol_setups:
-            pdbqt_string, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
-        if is_ok:
-            vinaobj.set_ligand_from_string(pdbqt_string)
-        opt_ens = vinaobj.optimize()
-        vinaobj.write_pose('vina_pose.pdbqt',overwrite=True)
-        pdbqt_mol = PDBQTMolecule.from_file('vina_pose.pdbqt', skip_typing=True)
-        # Returns a list of rdkit mols
-        rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
-
-        return opt_ens[0], rdkitmols[0]
-
     # Score original conformer
-    score, optmol = vina_opt(mol)
+    score, optmol = vina_opt(mol, vinaobj)
     scores.append(score)
     optmols.append(optmol)
 
@@ -181,7 +188,7 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     rotmol.RemoveAllConformers()
     rotmol.AddConformer(rotconf, assignId=True)
     # Score flipped conformer
-    score, optmol = vina_opt(rotmol)
+    score, optmol = vina_opt(rotmol, vinaobj)
     scores.append(score)
     optmols.append(optmol)
 
@@ -199,7 +206,7 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
             tramol.AddConformer(conf, assignId=True)
 
             # Score conformer
-            score, optmol = vina_opt(tramol)
+            score, optmol = vina_opt(tramol, vinaobj)
             scores.append(score)
             optmols.append(optmol)
 
