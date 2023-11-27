@@ -277,7 +277,6 @@ def score_map_comb(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
     
     # Combine each of the poses with the host and calculate scores
-    print("Num conformers:", hostmol.GetNumConformers(), mol.GetNumConformers())
     complexconfs = Chem.CombineMols(hostmol, mol)
 
     # Optimise the confomers
