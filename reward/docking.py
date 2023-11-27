@@ -219,7 +219,7 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     for i in score_confids:
         finalcomplex.AddConformer(optmols[i].GetConformer(0), assignId=True)
 
-    return finalcomplex
+    return finalcomplex, scores
 
 """ COMBINED SCORING METHODS """
 
@@ -296,7 +296,7 @@ def score_map_comb(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     for i in score_confids:
         finalcomplex.AddConformer(complexconfs.GetConformer(i), assignId=True)
     
-    return finalcomplex
+    return finalcomplex, scores
 
 if __name__ == "__main__":
     # working on this on branch vina_scoring_edit
