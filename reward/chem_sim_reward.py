@@ -1,4 +1,3 @@
-import vina
 from rdkit import Chem
 
 # Methods for reward calculations
@@ -130,12 +129,9 @@ class CBDock_reward(Reward):
 def _initialise_host(conf):
     """ A "pseudo constructor" for the class containing only static methods, will only work these out at the start
     """
-    global _host_initialised, v, hostmol, host_en
-    #global guestwriter, complexwriter, posewriter
+    global _host_initialised, hostmol, host_pdbqt, host_en
 
-    v = vina.Vina(verbosity=0)
-    # Note host must me aligned with z-axis
-    v.set_receptor(conf["host_pdbqt"])
+    host_pdbqt = conf["host_pdbqt"]
     hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
 
     confs_per_guest = conf["vina_num_rotations"] * conf["vina_num_translations"] + 1
@@ -145,11 +141,6 @@ def _initialise_host(conf):
     
     # If using multiple properties, turn this into a dictionary
     host_en = conf["host_en"]
-
-    #guestwriter = Chem.SDWriter(conf["molsoutdir"] + "/guests.sdf")
-    #complexwriter = Chem.SDWriter(conf["molsoutdir"] + "/complexes.sdf")
-    #posewriter = Chem.SDWriter(conf["molsoutdir"] + "/poses.sdf")
-
     print("globvars set")
     
     _host_initialised = True
