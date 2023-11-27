@@ -62,7 +62,7 @@ include_filter_result_in_reward: False
 host_pdbqt: reward/data/host_aligned.pdbqt
 host_sdf: reward/data/host_aligned.sdf
 host_en: -157089.5126460131
-molgen_n_confs: 6
+molgen_n_confs: 1
 molgen_rmsd_threshold: 0.35
 vina_num_rotations: 5
 vina_num_translations: 5
