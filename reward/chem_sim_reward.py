@@ -52,7 +52,7 @@ class CBDock_reward(Reward):
             # note that currently this takes the best result from docking. 
             # I may want to do a quick optimisation on the top few complexes if they are very close together, but have large difference in pose
             print("STATUS - docking")
-            complexmols, scores = score_map_mmff94(
+            complexmols, scores = score_map_vina(
                 guestmol,
                 hostmol,
                 conf["vina_num_rotations"],
@@ -124,7 +124,8 @@ class CBDock_reward(Reward):
         base_score = -10.0
 
         score_diff = binding_en - base_score
-
+        
+        # + sa_score/5.0
         return - score_diff * 0.1 / (1 + abs(score_diff) * 0.1)
 
 def _initialise_host(conf):
