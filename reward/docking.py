@@ -230,6 +230,17 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
 
 """ COMBINED SCORING METHODS """
 
+def vina_scoring(guestmol, vinaobj):
+        preparator = MoleculePreparation(merge_these_atom_types=[])
+        mol_setups = preparator.prepare(guestmol)
+        for setup in mol_setups:
+            pdbqt_string, is_ok, _ = PDBQTWriterLegacy.write_string(setup)
+        if is_ok:
+            vinaobj.set_ligand_from_string(pdbqt_string)
+        vina_ens = vinaobj.score()
+
+        return vina_ens[0]
+
 def score_map_comb(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     """ Uses the mmff94 force field to optimise just a few poses, instead of using vina score.
     """
@@ -264,17 +275,6 @@ def score_map_comb(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     vinaobj = vina.Vina(verbosity=0, no_refine=True)
     vinaobj.set_receptor(hostpdbqtfile)
     vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
-
-    def vina_scoring(guestmol):
-        preparator = MoleculePreparation(merge_these_atom_types=[])
-        mol_setups = preparator.prepare(guestmol)
-        for setup in mol_setups:
-            pdbqt_string, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
-        if is_ok:
-            vinaobj.set_ligand_from_string(pdbqt_string)
-        vina_ens = vinaobj.score()
-
-        return vina_ens[0]
     
     # Combine each of the poses with the host and calculate scores
     complexconfs = Chem.CombineMols(hostmol, mol)
@@ -290,7 +290,7 @@ def score_map_comb(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
         emptymol = Chem.GetMolFrags(complexconfs, asMols=True)[1]
         emptymol.RemoveAllConformers()
         emptymol.AddConformer(Chem.GetMolFrags(complexconfs, asMols=True)[1].GetConformer(pose), assignId=True)
-        vina_score = vina_scoring(emptymol)
+        vina_score = vina_scoring(emptymol, vinaobj)
         vina_scores.append(vina_score)
 
     scores = scores + vina_scores
