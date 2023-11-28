@@ -1,8 +1,7 @@
-Query,SMILES,logK
-Acetone,CC(=O)C,2.763427994
-Butan-2-one,CCC(=O)C,3.491361694
-Pentan-3-one,CCC(=O)CC,3.31386722
-3,3-Dimethylbutan-2-one,CC(=O)C(C)(C)C,3.828659897
-Acetophenone,CC(=O)c1ccccc1,3.982271233
-1-Phenylbutan-2-one,CCC(=O)Cc1ccccc1,3.662757832
-Dimethylsulfoxide,CS(=O)C,2.146128036
+Acetone	CC(=O)C
+Butan-2-one	CCC(=O)C
+Pentan-3-one	CCC(=O)CC
+3,3-Dimethylbutan-2-one	CC(=O)C(C)(C)C
+Acetophenone	CC(=O)c1ccccc1
+1-Phenylbutan-2-one	CCC(=O)Cc1ccccc1
+Dimethylsulfoxide	CS(=O)C

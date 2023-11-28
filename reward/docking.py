@@ -1,7 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import vina
-from meeko import MoleculePreparation, PDBQTWriterLegacy
+from meeko import MoleculePreparation, PDBQTWriterLegacy, PDBQTMolecule, RDKitMolCreate
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -134,31 +134,41 @@ def modify_pdbqt_str(pdbqt_str, new_coords):
     new_pdbqt_str = '\n'.join(new_pdbqt_lines)
     return new_pdbqt_str
 
-def score_map_vina(mol, hostmol, num_rot, num_tra, host_pdbqt):
+def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
     """ Screens across a set of rotations and translations
     """
     aligned_coords = align_mol(mol)
-    vinaobj = vina.Vina(verbosity=0)
-    # Note host must me aligned with z-axis
-    vinaobj.set_receptor(host_pdbqt)    
-
-    meeko_prep = MoleculePreparation(merge_these_atom_types=[])
-    mol_setups = meeko_prep.prepare(mol)
-    for setup in mol_setups:
-        pdbqt_setup, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
-        if is_ok:
-            pdbqt_setup_final = pdbqt_setup
-    pdbqt_str = modify_pdbqt_str(pdbqt_setup_final, aligned_coords)
     
     # Create 2d grid of rotations and translations
     rotations = np.linspace(0,90,num_rot)
     translations = np.linspace(0,4,num_tra)
     scores = []
+    optmols = []
+
+    # Initialize and setup vina optimizer
+    vinaobj = vina.Vina(verbosity=0)
+    vinaobj.set_receptor(hostpdbqtfile)
+    vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
+
+    def vina_opt(guestmol):
+        preparator = MoleculePreparation(merge_these_atom_types=[])
+        mol_setups = preparator.prepare(guestmol)
+        for setup in mol_setups:
+            pdbqt_string, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
+        if is_ok:
+            vinaobj.set_ligand_from_string(pdbqt_string)
+        opt_ens = vinaobj.optimize()
+        vinaobj.write_pose('vina_pose.pdbqt',overwrite=True)
+        pdbqt_mol = PDBQTMolecule.from_file('vina_pose.pdbqt', skip_typing=True)
+        # Returns a list of rdkit mols
+        rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+
+        return opt_ens[0], rdkitmols[0]
 
     # Score original conformer
-    vinaobj.set_ligand_from_string(pdbqt_str)
-    vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
-    scores.append(vinaobj.score()[0])
+    score, optmol = vina_opt(mol)
+    scores.append(score)
+    optmols.append(optmol)
 
     # Conformer 2: flip the guest 90 degrees about the x axis (means it probably wont fit, so will not screen in this direction)
     rotation_matrix = np.array([[np.cos(90),-np.sin(90),0], [np.sin(90), np.cos(90), 0], [0,0,1]])
@@ -167,11 +177,13 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, host_pdbqt):
     rotconf = Chem.Conformer(mol.GetConformer(0))
     for index, atm in enumerate(mol.GetAtoms()):
         rotconf.SetAtomPosition(atm.GetIdx(), rotation_coords[index])
-    mol.AddConformer(rotconf, assignId=True)
+    rotmol = Chem.Mol(mol)
+    rotmol.RemoveAllConformers()
+    rotmol.AddConformer(rotconf, assignId=True)
     # Score flipped conformer
-    vinaobj.set_ligand_from_string(modify_pdbqt_str(pdbqt_str, rotation_coords))
-    vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
-    scores.append(vinaobj.score()[0])
+    score, optmol = vina_opt(rotmol)
+    scores.append(score)
+    optmols.append(optmol)
 
     # Screen across rotations and translations
     for rotate_by in rotations:
@@ -182,17 +194,99 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, host_pdbqt):
             conf = Chem.Conformer(mol.GetConformer(0))
             for index, atm in enumerate(mol.GetAtoms()):
                 conf.SetAtomPosition(atm.GetIdx(), new_coords[index])
-            mol.AddConformer(conf, assignId=True)
+            tramol = Chem.Mol(mol)
+            tramol.RemoveAllConformers()
+            tramol.AddConformer(conf, assignId=True)
 
             # Score conformer
-            vinaobj.set_ligand_from_string(modify_pdbqt_str(pdbqt_str, new_coords))
-            vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
-            scores.append(vinaobj.score()[0])
+            score, optmol = vina_opt(tramol)
+            scores.append(score)
+            optmols.append(optmol)
 
     # Combine each of the poses with the host and calculate scores
-    complexconfs = Chem.CombineMols(hostmol, mol)
+    onehostmol = Chem.Mol(hostmol)
+    onehostmol.RemoveAllConformers()
+    onehostmol.AddConformer(hostmol.GetConformer(0), assignId=True)
     
     scores = np.array(scores)
+    optmols = [Chem.CombineMols(onehostmol, i) for i in optmols]
+    # Sort the conformers by score and assign IDs in ascending order
+    score_confids = np.argsort(scores)
+    scores = [float(i) for i in np.sort(scores)]
+    
+    finalcomplex = Chem.Mol(optmols[0])
+    finalcomplex.RemoveAllConformers()
+    for i in score_confids:
+        finalcomplex.AddConformer(optmols[i].GetConformer(0), assignId=True)
+
+    return finalcomplex, scores
+
+""" COMBINED SCORING METHODS """
+
+def score_map_comb(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
+    """ Uses the mmff94 force field to optimise just a few poses, instead of using vina score.
+    """
+    # Conformer 1: principal axis of guest aligned with axis through the cavity of the CB (z-axis)
+    aligned_coords = align_mol(mol)
+    
+    # Conformer 2: flip the guest 90 degrees about the x axis (means it probably wont fit, so will not screen in this direction)
+    rotation_matrix = np.array([[np.cos(90),-np.sin(90),0], [np.sin(90), np.cos(90), 0], [0,0,1]])
+    rotation_coords = np.matmul(rotation_matrix,aligned_coords.T).T
+
+    rotconf = Chem.Conformer(mol.GetConformer(0))
+    for index, atm in enumerate(mol.GetAtoms()):
+        rotconf.SetAtomPosition(atm.GetIdx(), rotation_coords[index])
+    mol.AddConformer(rotconf, assignId=True)
+    
+    # Create 2d grid of rotations and translations
+    rotations = np.linspace(0,90,num_rot)
+    translations = np.linspace(0,4,num_tra)
+
+    # Screen across rotations and translations
+    for rotate_by in rotations:
+        for translate_by in translations:
+            # Add the new conformers as conformers to the mol object
+            new_coords = transform_coords(aligned_coords, rotate_by=rotate_by, translate_by=translate_by)
+            # Get a copy of the original conformer to edit with the transformed coordinates
+            conf = Chem.Conformer(mol.GetConformer(0))
+            for index, atm in enumerate(mol.GetAtoms()):
+                conf.SetAtomPosition(atm.GetIdx(), new_coords[index])
+            mol.AddConformer(conf, assignId=True)
+    
+    # Initialize and setup vina scorer, set no refine as this is a scoring only job
+    vinaobj = vina.Vina(verbosity=0, no_refine=True)
+    vinaobj.set_receptor(hostpdbqtfile)
+    vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
+
+    def vina_scoring(guestmol):
+        preparator = MoleculePreparation(merge_these_atom_types=[])
+        mol_setups = preparator.prepare(guestmol)
+        for setup in mol_setups:
+            pdbqt_string, is_ok, error_msg = PDBQTWriterLegacy.write_string(setup)
+        if is_ok:
+            vinaobj.set_ligand_from_string(pdbqt_string)
+        vina_ens = vinaobj.score()
+
+        return vina_ens[0]
+    
+    # Combine each of the poses with the host and calculate scores
+    complexconfs = Chem.CombineMols(hostmol, mol)
+
+    # Optimise the confomers
+    Chem.GetSSSR(complexconfs)
+    mmff_res = AllChem.MMFFOptimizeMoleculeConfs(complexconfs, numThreads=0, ignoreInterfragInteractions=False)
+    scores = np.array([i[1] for i in mmff_res])
+
+    # Use vina scoring to confirm the best MMFF optimised structure
+    vina_scores = []
+    for pose in range(mol.GetNumConformers()):
+        emptymol = Chem.GetMolFrags(complexconfs, asMols=True)[1]
+        emptymol.RemoveAllConformers()
+        emptymol.AddConformer(Chem.GetMolFrags(complexconfs, asMols=True)[1].GetConformer(pose), assignId=True)
+        vina_score = vina_scoring(emptymol)
+        vina_scores.append(vina_score)
+
+    scores = scores + vina_scores
     # Sort the conformers by score and assign IDs in ascending order
     score_confids = [int(i) for i in np.argsort(scores)]
     scores = [float(i) for i in np.sort(scores)]
@@ -201,5 +295,39 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, host_pdbqt):
     finalcomplex.RemoveAllConformers()
     for i in score_confids:
         finalcomplex.AddConformer(complexconfs.GetConformer(i), assignId=True)
-
+    
     return finalcomplex, scores
+
+if __name__ == "__main__":
+    # working on this on branch vina_scoring_edit
+    # access it with git checkout vina_scoring_edit
+    # push it with git -u origin vina_scoring_edit
+    # merge later on
+    from smi2sdf import process_smi
+
+    smi = "c12=CC=CC=c1cccc2"
+    mol = Chem.MolFromSmiles(smi)
+    guestmol = process_smi(mol, 1, 0.35)
+    hostmol = Chem.MolFromMolFile("data/host_aligned.sdf",removeHs=False,sanitize=False)
+    hostpdbqtfile = "data/host_aligned.pdbqt"
+
+    for i in range(25+1):
+        newhost = Chem.Conformer(hostmol.GetConformer(0))
+        hostmol.AddConformer(newhost, assignId=True)
+
+    # Test
+    finalcomplex = score_map_comb(guestmol, hostmol, 5, 5, hostpdbqtfile)
+
+    # print("Vina scores post: ",vina_scores)
+    # print("MMFF scores: ",scores)
+
+    # for i,j in zip(scores, vina_scores):
+    #     print("{:.2f} {:.2f}".format(i,j))
+
+    # # Test MMFF94
+    # finalcomplex, scores = score_map_mmff94(guestmol, hostmol, 5, 5)
+    # print("MMFF scores: ", scores)
+
+    # Write to file
+    writer = Chem.SDWriter("test.sdf")
+    writer.write(finalcomplex)

@@ -40,8 +40,8 @@ def get_opt(mol, outfile, conf):
     # Get current temp dirs
     curr = glob("xtbtmp_*")
     # Make new temp dir
-    os.mkdir(f"reward/xtbtmp_{len(curr)+1}")
-    os.chdir(f"reward/xtbtmp_{len(curr)+1}")
+    os.mkdir(f"xtbtmp_{len(curr)+1}")
+    os.chdir(f"xtbtmp_{len(curr)+1}")
 
     Chem.MolToMolFile(mol,"mol.sdf",kekulize=False)
     xtb_opt("mol.sdf", outfile)
@@ -53,7 +53,7 @@ def get_opt(mol, outfile, conf):
     # Put the outfile somewhere? (Write a function to get the relevant information and deposit it in a filewriter)
     en = get_binding(outfile)
     os.chdir(orgdir)
-    rmtree(f"reward/xtbtmp_{len(curr)+1}")
+    rmtree(f"xtbtmp_{len(curr)+1}")
     
     return finalmol, en
 
