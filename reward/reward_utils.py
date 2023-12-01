@@ -31,54 +31,6 @@ def fix_charge(mol):
             at.SetFormalCharge(1)
     Chem.SanitizeMol(mol)
 
-""" XTB METHODS """
-
-def get_opt(mol, outfile, conf):
-    """ Calls methods to optimise a mol and retrieve energy
-    """
-    orgdir = os.getcwd()
-    # Get current temp dirs
-    curr = glob("xtbtmp_*")
-    # Make new temp dir
-    os.mkdir(f"xtbtmp_{len(curr)+1}")
-    os.chdir(f"xtbtmp_{len(curr)+1}")
-
-    Chem.MolToMolFile(mol,"mol.sdf",kekulize=False)
-    xtb_opt("mol.sdf", outfile)
-    try:
-        finalmol = Chem.MolFromMolFile("xtbopt.sdf",removeHs=False,sanitize=False)
-    except:
-        print("didnt optimise")
-
-    # Put the outfile somewhere? (Write a function to get the relevant information and deposit it in a filewriter)
-    en = get_binding(outfile)
-    os.chdir(orgdir)
-    rmtree(f"xtbtmp_{len(curr)+1}")
-    
-    return finalmol, en
-
-def xtb_opt(filename, outfile):
-    """ Optimises from an sdf file """
-
-    sp.run(["obabel","-isdf","-osdf",f"{filename}","-O",f"{filename}"],stderr=sp.DEVNULL)
-    sp.run(["xtb",f"{filename}","--ohess","normal","--alpb","water"],stdout=open(outfile,"w"),stderr=sp.DEVNULL)
-    
-    return outfile
-
-def get_binding(filename):
-    """ Gets binding energy from an sdf file """
-
-    gen = (i.split() for i in reversed(open(filename,"r").readlines()))
-
-    binding = 0
-    for i in gen:
-        if i:
-            if " ".join(i[:4]) == ":: total free energy":
-                binding = float(i[4])*627.5095
-                break
-
-    return binding
-
 """ CHECKS ON MOLECULES """
 
 def is_small_cylinder(guestmol, cutoff_r=3.65, cutoff_h=4.55):
