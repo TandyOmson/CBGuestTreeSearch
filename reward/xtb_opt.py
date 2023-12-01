@@ -22,8 +22,9 @@ class xtbEnergy():
         # Get current temp dirs
         curr = glob("xtbtmp_*")
         # Make new temp dir
-        os.mkdir(f"xtbtmp_{len(curr)+1}")
-        os.chdir(f"xtbtmp_{len(curr)+1}")
+        dirId = len(curr)+1
+        os.mkdir(f"xtbtmp_{dirId}")
+        os.chdir(f"xtbtmp_{dirId}")
 
         Chem.MolToMolFile(mol,"mol.sdf",kekulize=False)
         self.xtb_opt("mol.sdf")
@@ -40,7 +41,7 @@ class xtbEnergy():
         # if self.conf["partial_charges"]:
 
         os.chdir(orgdir)
-        rmtree(f"xtbtmp_{len(curr)+1}")
+        rmtree(f"xtbtmp_{dirId}")
         
         return finalmol, en
 
@@ -61,7 +62,6 @@ class xtbEnergy():
             cmd.append("--alpb")
             cmd.append("water")
 
-        print(cmd)
         sp.run(cmd, stdout=open("opt.out","w"), stderr=sp.DEVNULL)
         
         return

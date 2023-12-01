@@ -7,7 +7,7 @@ from reward.sascorer import calculateScore
 # Can inherit from the batchReward abstract class
 from reward.reward import Reward
 
-# On module call, _host_initialised is set to False, then becomes true on first call to binding_en
+# On module call, _host_initialised is set to False, then becomes true on first call to binding_mol
 _host_initialised = False
 
 class CBDock_reward(Reward):
@@ -17,13 +17,14 @@ class CBDock_reward(Reward):
     def get_objective_functions(conf):
         """ Must return a list of functions """
 
-        def binding_en(mol):
+        def binding_mol(mol):
             """ Calculate values contributing to the reward arising from binding
             """
             if not _host_initialised:
                 _initialise_host(conf)
 
             simulator = ChemSim(conf, hostmol)
+            simulator.setup()
             finalmol = simulator.run(mol)
 
             return finalmol
@@ -35,7 +36,7 @@ class CBDock_reward(Reward):
             
             return sa_score
             
-        return [binding_en, sa_scorer]
+        return [binding_mol, sa_scorer]
     
     def calc_reward_from_objective_values(values, conf):
         """ Must return a float based on results of objective functions (values) 

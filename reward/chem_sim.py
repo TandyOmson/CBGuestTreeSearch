@@ -8,26 +8,74 @@
     The chemistry simulator logs data separately to the tree search (which only needs outputs relevant to the reward function)
     However config for standalone running, and ChemSim logging are found in the same config file as the MCTS
     Usage:
-    (chemts) $ python3 chem_sim.py -c <mcts_config>
+    (chemts) $ python3 chem_sim.py -i <.smi file> -c <mcts_config>
 """
 from rdkit import Chem
+import pandas as pd
+import os
 
 # Methods for binding calculations
-from reward.smi2sdf import process_smi
-from reward.docking import score_map_vina, score_map_comb
-from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, get_property_mol
-from reward.xtb_opt import xtbEnergy
+if __name__ != "__main__":
+    from reward.smi2sdf import process_smi
+    from reward.docking import score_map_vina, score_map_comb
+    from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, get_property_mol
+    from reward.xtb_opt import xtbEnergy
 
 class ChemSim():
     """ Contains the chemitry simulator
     """
-    def __init__(self, conf, hostmol):
+    def __init__(self, conf, hostmol, **kwargs):
         self.conf = conf
         # Non optional variables set as class attributes
         self.hostmol = hostmol
         self.host_en = conf["host_en"]
+        self.outdir = conf["output_dir"]
+        # SET AS STANDALONE CHEMISTRY SIMULATOR
+        self.is_standalone = kwargs.get("standalone", False)
+        self.proplist = []
 
-    # ... output setup functions
+    def setup(self):
+        """ Sets up output directory for chemistry simulation data
+            Maybe try the global design pattern for this later if ChemSim is only initialized once
+        """
+        if self.is_standalone:
+            try:
+                os.mkdir(self.outdir)
+            except:
+                print("WARNING - output directory already exists")
+        
+        # if standalone, make it a pickle (to include structures, else just a csv)
+        if self.is_standalone:
+            self.outfile = os.path.join(self.outdir, "chem_sim.pkl")
+            self.df = pd.DataFrame(columns=self.proplist.append("binding_mol"))
+        else:
+            self.outfile = os.path.join(self.outdir, "chem_sim.csv")
+            self.df = pd.DataFrame(columns=self.proplist)
+
+    def flush(self, propertymol):
+        """ Writes the output of a molecule to the output file
+            Properties are written to the propertymol based on the config
+        """
+        if self.is_standalone:
+            # Convert the propertymol to a dictionary
+            moldict = {}
+            for i in propertymol.GetPropNames():
+                moldict[i] = propertymol.GetProp(i)
+            # Remove the props from the mol to save space
+            for i in propertymol.GetPropNames():
+                propertymol.ClearProp(i)
+            # Add the mol back to get the complexed structure
+            moldict["mol"] = propertymol
+            num = len(self.df) + 1
+            df_mol = pd.DataFrame(moldict,index=[num])
+            self.df = pd.concat([self.df, df_mol],axis=0)
+            self.df.to_pickle(self.outfile)
+        else:
+            # Convert the propertymol to a dictionary
+            moldict = propertymol.GetPropsAsDict(includeComputed=True, includePrivate=True)
+            df_mol = pd.DataFrame(moldict)
+            self.df = pd.concat([self.df, df_mol],axis=0)
+            self.df.to_csv(self.outfile)
 
     def run(self, mol):
         """ Runs the chemistry simulator based on the setup for one mol
@@ -115,14 +163,69 @@ class ChemSim():
         optcomplexmol.SetDoubleProp("en", bind_en)
 
         # For docking testing, add scores from binding poses
-        try:
-            for rank, i in enumerate(scores):
-                optcomplexmol.SetDoubleProp("en_" + str(rank), i)
-        except:
-            print("NOTE - couldn't add pose scores to mol object")
+        # try:
+        #     for rank, i in enumerate(scores):
+        #         optcomplexmol.SetDoubleProp("en_" + str(rank), i)
+        # except:
+        #     print("NOTE - couldn't add pose scores to mol object")
 
         # Additional optional outputs from binding energy calculation
 
         # Additional outputs
 
         return get_property_mol(optcomplexmol)
+    
+if __name__ == "__main__":
+    import os
+    import argparse
+    import yaml
+
+    from smi2sdf import process_smi
+    from docking import score_map_vina, score_map_comb
+    from reward_utils import fix_charge, is_small_cylinder, is_exo, get_property_mol
+    from xtb_opt import xtbEnergy
+    
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+    parser = argparse.ArgumentParser(
+        description="",
+        usage=f"python {os.path.basename(__file__)} -c <config_file>"
+    )
+    parser.add_argument(
+        "-c", "--config", type=str, required=True,
+        help="path to a config file"
+    )
+    parser.add_argument(
+        "-i", "--input", type=str, required=True,
+        help="path to a .smi file"
+    )
+    args = parser.parse_args()
+    with open(args.config, 'r') as f:
+        conf = yaml.load(f, Loader=yaml.SafeLoader)
+
+    global _host_initialised, hostmol, host_pdbqt, host_en
+
+    host_pdbqt = conf["host_pdbqt"]
+    hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
+
+    confs_per_guest = conf["vina_num_rotations"] * conf["vina_num_translations"] + 1
+    for i in range(confs_per_guest):
+        newhost = Chem.Conformer(hostmol.GetConformer(0))
+        hostmol.AddConformer(newhost, assignId=True)
+    
+    # If using multiple properties, turn this into a dictionary
+    host_en = conf["host_en"]
+    print("globvars set")
+
+    try:
+        df = pd.read_csv(args.input, sep="\t", names=["name","smiles"], index_col=False)
+    except:
+        df = pd.read_csv(args.input, sep=" ", names=["smiles"], index_col=False)
+
+    simulator = ChemSim(conf, hostmol, standalone=True)
+    simulator.setup()
+    for count, i in enumerate(df["smiles"],1):
+        mol = Chem.MolFromSmiles(i)
+        molout = simulator.run(mol)
+        simulator.flush(molout)
+        print("done ", count)
