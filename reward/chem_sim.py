@@ -67,13 +67,17 @@ class ChemSim():
             # Add the mol back to get the complexed structure
             moldict["mol"] = propertymol
             num = len(self.df) + 1
-            df_mol = pd.DataFrame(moldict,index=[num])
+            df_mol = pd.DataFrame(moldict, index=[num])
             self.df = pd.concat([self.df, df_mol],axis=0)
             self.df.to_pickle(self.outfile)
         else:
             # Convert the propertymol to a dictionary
-            moldict = propertymol.GetPropsAsDict(includeComputed=True, includePrivate=True)
-            df_mol = pd.DataFrame(moldict)
+            # Convert the propertymol to a dictionary
+            moldict = {}
+            for i in propertymol.GetPropNames():
+                moldict[i] = propertymol.GetProp(i)
+            num = len(self.df) + 1
+            df_mol = pd.DataFrame(moldict, index=[num])
             self.df = pd.concat([self.df, df_mol],axis=0)
             self.df.to_csv(self.outfile)
 
@@ -142,15 +146,15 @@ class ChemSim():
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
         calc = xtbEnergy(self.conf)
-        # try:
-        print("STATUS - optimising guest")
-        optguestmol, guest_en = calc.get_opt(guestmol)
-        print("STATUS - optimising complex")
-        optcomplexmol, complex_en = calc.get_opt(complexmol)
-        # except:
-        #     print("END - couldn't optimise")
-        #     nullmol.SetDoubleProp("en", 20.4)
-        #     return get_property_mol(nullmol)
+        try:
+            print("STATUS - optimising guest")
+            optguestmol, guest_en = calc.get_opt(guestmol)
+            print("STATUS - optimising complex")
+            optcomplexmol, complex_en = calc.get_opt(complexmol)
+        except:
+            print("END - couldn't optimise")
+            nullmol.SetDoubleProp("en", 20.4)
+            return get_property_mol(nullmol)
         
         # If the result of xTB optimisation is exo, set bad score
         exo = is_exo(optcomplexmol, self.hostmol, self.conf)
