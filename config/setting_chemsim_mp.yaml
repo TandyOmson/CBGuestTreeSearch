@@ -58,7 +58,7 @@ pains_filter:
   type: [pains_a]
 include_filter_result_in_reward: False
 
-# User setting
+# Docking Settings
 host_pdbqt: reward/data/host_aligned.pdbqt
 host_sdf: reward/data/host_aligned.sdf
 host_en: -157089.5126460131
@@ -68,6 +68,13 @@ vina_num_rotations: 5
 vina_num_translations: 5
 centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
+
+# Chemistry Simulator Settings
+thermo: True
+solvent: True
+optlevel: normal
+additional_ens: False
+partial_charges: False
 
 # Parrallelisation strategy
 leaf_parallel: True
