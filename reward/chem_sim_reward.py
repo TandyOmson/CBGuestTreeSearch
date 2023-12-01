@@ -26,6 +26,8 @@ class CBDock_reward(Reward):
             simulator = ChemSim(conf, hostmol)
             simulator.setup()
             finalmol = simulator.run(mol)
+            # Record additional properties from ChemSim
+            simulator.flush(finalmol)
 
             return finalmol
 
