@@ -104,7 +104,7 @@ class ChemSim():
             return get_property_mol(nullmol)
             
         if not is_small:
-            if conf["vina_large_guest"]:
+            if self.conf["vina_large_guest"]:
                 try:
                     complexmols, scores = vina_dock(
                         guestmol,
