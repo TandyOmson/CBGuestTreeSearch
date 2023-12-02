@@ -68,7 +68,7 @@ def is_small_cylinder(guestmol, cutoff_r=3.65, cutoff_h=4.55):
     else:
         return False
     
-def is_exo(complexmol, hostmol, conf, confId=0):
+def is_exo(complexmol, hostmol, conf):
     """ Checks for exo complex
     """
     if not conf["centroid_diff_threshold"]:
@@ -82,8 +82,8 @@ def is_exo(complexmol, hostmol, conf, confId=0):
     Chem.RemoveHs(hostmol)
 
     # Separate host and guest, get their coordinates
-    guest_coords = np.array([complexmol.GetConformer(confId).GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(complexmol.GetAtoms()) if count >= hostmol.GetNumAtoms()])
-    host_coords = np.array([complexmol.GetConformer(confId).GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(complexmol.GetAtoms()) if not count >= hostmol.GetNumAtoms()])
+    guest_coords = np.array([complexmol.GetConformer().GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(complexmol.GetAtoms()) if count >= hostmol.GetNumAtoms()])
+    host_coords = np.array([complexmol.GetConformer().GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(complexmol.GetAtoms()) if not count >= hostmol.GetNumAtoms()])
 
     # Get host and guest centroid
     guest_centroid = np.array(guest_coords).mean(axis=0)
