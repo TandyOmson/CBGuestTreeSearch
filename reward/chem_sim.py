@@ -17,7 +17,7 @@ import os
 # Methods for binding calculations
 if __name__ != "__main__":
     from reward.smi2sdf import process_smi
-    from reward.docking import score_map_vina, score_map_comb
+    from reward.docking import score_map_vina, score_map_comb, vina_dock
     from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, get_property_mol
     from reward.xtb_opt import xtbEnergy
 
@@ -72,7 +72,6 @@ class ChemSim():
             self.df.to_pickle(self.outfile)
         else:
             # Convert the propertymol to a dictionary
-            # Convert the propertymol to a dictionary
             moldict = {}
             for i in propertymol.GetPropNames():
                 moldict[i] = propertymol.GetProp(i)
@@ -105,30 +104,47 @@ class ChemSim():
             return get_property_mol(nullmol)
             
         if not is_small:
-            guestmol.SetDoubleProp("en", 20.2)
-            print("END = - guest too large")
-            return get_property_mol(guestmol)
+            if conf["vina_large_guest"]:
+                try:
+                    complexmols, scores = vina_dock(
+                        guestmol,
+                        self.hostmol,
+                        self.conf["exhaustiveness"],
+                        self.conf["n_poses"],
+                        self.conf["min_rmsd"],
+                        self.conf["host_pdbqt"]
+                    )
+                except:
+                    guestmol.SetDoubleProp("en", 20.2)
+                    print("END = - guest too large, couldnt dock by vina")
+                    return get_property_mol(guestmol)
+
+            else:
+                guestmol.SetDoubleProp("en", 20.2)
+                print("END = - guest too large")
+                return get_property_mol(guestmol)
         
         # 2. Dock the best conformer
         # note that currently this takes the best result from docking. 
         # I may want to do a quick optimisation on the top few complexes if they are very close together, but have large difference in pose
         print("STATUS - docking")
-        try:
-            complexmols, scores = score_map_vina(
-                guestmol,
-                self.hostmol,
-                self.conf["vina_num_rotations"],
-                self.conf["vina_num_translations"],
-                self.conf["host_pdbqt"]
-                )
-        except:
-            complexmols, scores = score_map_comb(
-                guestmol,
-                self.hostmol,
-                self.conf["vina_num_rotations"],
-                self.conf["vina_num_translations"],
-                self.conf["host_pdbqt"]
-                ) 
+        if is_small:
+            try:
+                complexmols, scores = score_map_vina(
+                    guestmol,
+                    self.hostmol,
+                    self.conf["vina_num_rotations"],
+                    self.conf["vina_num_translations"],
+                    self.conf["host_pdbqt"]
+                    )
+            except:
+                complexmols, scores = score_map_comb(
+                    guestmol,
+                    self.hostmol,
+                    self.conf["vina_num_rotations"],
+                    self.conf["vina_num_translations"],
+                    self.conf["host_pdbqt"]
+                    ) 
         
         # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
         for i in range(complexmols.GetNumConformers()):
@@ -197,7 +213,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-c", "--config", type=str, required=True,
-        help="path to a config file"
+        help="path to a .yaml file"
     )
     parser.add_argument(
         "-i", "--input", type=str, required=True,

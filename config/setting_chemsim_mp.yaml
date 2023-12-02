@@ -69,6 +69,12 @@ vina_num_translations: 5
 centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
 
+# Required settings if using Vina docking for large molecules
+vina_large_guest: False
+exhaustiveness: 32
+n_poses: 5
+min_rmsd: 3.0
+
 # Chemistry Simulator Settings
 thermo: True
 solvent: True

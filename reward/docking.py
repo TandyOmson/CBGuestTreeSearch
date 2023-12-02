@@ -228,6 +228,43 @@ def score_map_vina(mol, hostmol, num_rot, num_tra, hostpdbqtfile):
 
     return finalcomplex, scores
 
+def vina_dock(mol, hostmol, exhaustiveness, n_poses, min_rmsd, hostpdbqtfile):
+    """ Docking only using vina
+        Intended for use with too_large molecules
+    """
+    preparator = MoleculePreparation(merge_these_atom_types=[])
+    mol_setups = preparator.prepare(mol)
+
+    # Initialize and setup vina optimizer
+    vinaobj = vina.Vina(verbosity=0)
+    vinaobj.set_receptor(hostpdbqtfile)
+    vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
+
+    for setup in mol_setups:
+        pdbqt_string, is_ok, _ = PDBQTWriterLegacy.write_string(setup)
+    if is_ok:
+        vinaobj.set_ligand_from_string(pdbqt_string)
+
+    _ = vinaobj.optimize()
+    vinaobj.dock(exhaustiveness=exhaustiveness, n_poses=n_poses, min_rmsd=min_rmsd)
+
+    vina_output_str = vinaobj.poses()
+    if vina_output_str == "":
+        print("No poses found")
+        return mol
+
+    pdbqt_mol = PDBQTMolecule(vina_output_str, is_dlg=False, skip_typing=True)
+    rdkitmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+
+    hostmol_confs = Chem.Mol(hostmol)
+    hostmol_confs.RemoveAllConformers()
+    for i in range(rdkitmol[0].GetNumConformers()):
+        hostmol_confs.AddConformer(hostmol.GetConformer())
+        
+    complex = Chem.CombineMols(hostmol_confs, rdkitmol[0])
+
+    return complex, vinaobj.scores()
+
 """ COMBINED SCORING METHODS """
 
 def vina_scoring(guestmol, vinaobj):
