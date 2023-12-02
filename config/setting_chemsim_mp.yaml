@@ -57,6 +57,10 @@ pains_filter:
   class: PainsFilter
   type: [pains_a]
 include_filter_result_in_reward: False
+use_triplebond_filter: False
+triplebond_filter:
+  module: filter.triplebond_filter
+  class: TripleBondFilter
 
 # Docking Settings
 host_pdbqt: reward/data/host_aligned.pdbqt
@@ -70,7 +74,7 @@ centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
 
 # Required settings if using Vina docking for large molecules
-vina_large_guest: False
+vina_large_guest: True
 exhaustiveness: 32
 n_poses: 5
 min_rmsd: 3.0

@@ -263,7 +263,7 @@ def vina_dock(mol, hostmol, exhaustiveness, n_poses, min_rmsd, hostpdbqtfile):
         
     complex = Chem.CombineMols(hostmol_confs, rdkitmol[0])
 
-    return complex, vinaobj.scores()
+    return complex, vinaobj.energies()
 
 """ COMBINED SCORING METHODS """
 

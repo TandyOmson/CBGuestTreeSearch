@@ -201,7 +201,7 @@ if __name__ == "__main__":
     import yaml
 
     from smi2sdf import process_smi
-    from docking import score_map_vina, score_map_comb
+    from docking import score_map_vina, score_map_comb, vina_dock
     from reward_utils import fix_charge, is_small_cylinder, is_exo, get_property_mol
     from xtb_opt import xtbEnergy
     
@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description="",
-        usage=f"python {os.path.basename(__file__)} -c <config_file>"
+        usage=f"python {os.path.basename(__file__)} -c <config_file> i <input_file>"
     )
     parser.add_argument(
         "-c", "--config", type=str, required=True,
