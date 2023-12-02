@@ -26,6 +26,7 @@ INSTALL_REQUIRES = [
     'numpy~=1.19.2',
     'protobuf~=3.9.2',
     'rdkit-pypi==2021.03.5',
+    'selfies==2.1.0',
     'pyyaml',
     'pandas',
     'joblib']
