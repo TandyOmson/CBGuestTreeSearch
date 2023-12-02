@@ -151,10 +151,6 @@ def vina_opt(guestmol, vinaobj):
     pdbqt_mol = PDBQTMolecule.from_file(f'reward/vina_pose_{len(curr)+1}.pdbqt', skip_typing=True)
     # Returns a list of rdkit mols
     rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
-    
-    # Error in case no poses are found
-    if rdkitmols == []:
-        raise ValueError("No poses found")
 
     os.remove(f'reward/vina_pose_{len(curr)+1}.pdbqt')
 
@@ -254,8 +250,7 @@ def vina_dock(mol, hostmol, exhaustiveness, n_poses, min_rmsd, hostpdbqtfile):
 
     vina_output_str = vinaobj.poses()
     if vina_output_str == "":
-        print("No poses found")
-        return mol
+        raise ValueError("No poses found")
 
     pdbqt_mol = PDBQTMolecule(vina_output_str, is_dlg=False, skip_typing=True)
     rdkitmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
