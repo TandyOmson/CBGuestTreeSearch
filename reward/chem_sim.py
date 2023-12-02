@@ -105,19 +105,19 @@ class ChemSim():
             
         if not is_small:
             if self.conf["vina_large_guest"]:
-                # try:
-                complexmols, scores = vina_dock(
-                    guestmol,
-                    self.hostmol,
-                    self.conf["exhaustiveness"],
-                    self.conf["n_poses"],
-                    self.conf["min_rmsd"],
-                    self.conf["host_pdbqt"]
-                )
-                # except:
-                #     guestmol.SetDoubleProp("en", 20.2)
-                #     print("END = - guest too large, couldnt dock by vina")
-                #     return get_property_mol(guestmol)
+                try:
+                    complexmols, scores = vina_dock(
+                        guestmol,
+                        self.hostmol,
+                        self.conf["exhaustiveness"],
+                        self.conf["n_poses"],
+                        self.conf["min_rmsd"],
+                        self.conf["host_pdbqt"]
+                    )
+                except:
+                    guestmol.SetDoubleProp("en", 20.2)
+                    print("END = - guest too large, couldnt dock by vina")
+                    return get_property_mol(guestmol)
 
             else:
                 guestmol.SetDoubleProp("en", 20.2)
