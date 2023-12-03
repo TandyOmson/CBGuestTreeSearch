@@ -144,7 +144,7 @@ class ChemSim():
                     self.conf["vina_num_rotations"],
                     self.conf["vina_num_translations"],
                     self.conf["host_pdbqt"]
-                    ) 
+                    )
         
         # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
         for i in range(complexmols.GetNumConformers()):
@@ -249,3 +249,4 @@ if __name__ == "__main__":
         molout = simulator.run(mol)
         simulator.flush(molout)
         print("done ", count)
+        exit()

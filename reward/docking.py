@@ -258,7 +258,7 @@ def vina_dock(mol, hostmol, exhaustiveness, n_poses, min_rmsd, hostpdbqtfile):
     hostmol_confs = Chem.Mol(hostmol)
     hostmol_confs.RemoveAllConformers()
     for i in range(rdkitmol[0].GetNumConformers()):
-        hostmol_confs.AddConformer(hostmol.GetConformer())
+        hostmol_confs.AddConformer(hostmol.GetConformer(), assignId=True)
         
     complex = Chem.CombineMols(hostmol_confs, rdkitmol[0])
 
