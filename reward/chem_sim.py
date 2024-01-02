@@ -18,7 +18,7 @@ import os
 if __name__ != "__main__":
     from reward.smi2sdf import process_smi
     from reward.docking import score_map_vina, score_map_comb, vina_dock
-    from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, get_property_mol
+    from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_property_mol
     from reward.xtb_opt import xtbEnergy
 
 class ChemSim():
@@ -60,7 +60,10 @@ class ChemSim():
             # Convert the propertymol to a dictionary
             moldict = {}
             for i in propertymol.GetPropNames():
-                moldict[i] = propertymol.GetProp(i)
+                try:
+                    moldict[i] = float(propertymol.GetProp(i))
+                except:
+                    moldict[i] = propertymol.GetProp(i)
             # Remove the props from the mol to save space
             for i in propertymol.GetPropNames():
                 propertymol.ClearProp(i)
@@ -92,7 +95,12 @@ class ChemSim():
 
         # 1. Generate conformers
         print("STATUS - generating conformers")
-        guestmol = process_smi(mol, self.conf["molgen_n_confs"], self.conf["molgen_rmsd_threshold"])
+        try:
+            guestmol = process_smi(mol, self.conf["molgen_n_confs"], self.conf["molgen_rmsd_threshold"])
+        except:
+            print("END - bad conformer")
+            guestmol.SetDoubleProp("en", 20.1)
+            return get_property_mol(nullmol)
         fix_charge(guestmol)
 
         # If the guest is too large, set bad score
@@ -179,6 +187,13 @@ class ChemSim():
             guestmol.SetDoubleProp("en", 20.5)
             return get_property_mol(guestmol)
         
+        # Check if the smiles of the guest have changed
+        changed = check_smiles_change(optguestmol, Chem.GetMolFrags(optcomplexmol, asMols=True)[1])
+        if changed:
+            print("END - Smiles changed")
+            optcomplexmol.SetDoubleProp("en", 20.6)
+            return get_property_mol(optcomplexmol)
+        
         bind_en = complex_en - guest_en - self.host_en
         optcomplexmol.SetDoubleProp("en", bind_en)
 
@@ -191,7 +206,7 @@ class ChemSim():
 
         # Additional optional outputs from binding energy calculation
 
-        # Additional outputs
+        # Additional outputs (ie optguestmol)
 
         return get_property_mol(optcomplexmol)
     
@@ -202,7 +217,7 @@ if __name__ == "__main__":
 
     from smi2sdf import process_smi
     from docking import score_map_vina, score_map_comb, vina_dock
-    from reward_utils import fix_charge, is_small_cylinder, is_exo, get_property_mol
+    from reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_property_mol
     from xtb_opt import xtbEnergy
     
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -249,4 +264,3 @@ if __name__ == "__main__":
         molout = simulator.run(mol)
         simulator.flush(molout)
         print("done ", count)
-        exit()
