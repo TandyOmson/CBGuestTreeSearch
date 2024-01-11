@@ -267,7 +267,7 @@ def vina_dock(mol, hostmol, exhaustiveness, n_poses, min_rmsd, hostpdbqtfile):
 """ COMBINED SCORING METHODS """
 
 def vina_scoring(guestmol, vinaobj):
-        preparator = MoleculePreparation(merge_these_atom_types=[])
+        preparator = MoleculePreparation()
         mol_setups = preparator.prepare(guestmol)
         for setup in mol_setups:
             pdbqt_string, is_ok, _ = PDBQTWriterLegacy.write_string(setup)

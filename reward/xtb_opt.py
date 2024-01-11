@@ -14,17 +14,18 @@ class xtbEnergy():
         self.is_solvent = conf["solvent"]
         self.optlevel = conf["optlevel"]
         self.is_thermo = conf["thermo"]
+        self.outdir = conf["output_dir"]
 
     def get_opt(self, mol):
         """ Calls methods to optimise a mol and retrieve energy
         """
         orgdir = os.getcwd()
         # Get current temp dirs
-        curr = glob("xtbtmp_*")
+        curr = glob(f"{self.outdir}/xtbtmp_*")
         # Make new temp dir
         dirId = len(curr)+1
-        os.mkdir(f"xtbtmp_{dirId}")
-        os.chdir(f"xtbtmp_{dirId}")
+        os.mkdir(f"{self.outdir}/xtbtmp_{dirId}")
+        os.chdir(f"{self.outdir}/xtbtmp_{dirId}")
 
         Chem.MolToMolFile(mol,"mol.sdf",kekulize=False)
         self.xtb_opt("mol.sdf")
@@ -41,7 +42,7 @@ class xtbEnergy():
         # if self.conf["partial_charges"]:
 
         os.chdir(orgdir)
-        rmtree(f"xtbtmp_{dirId}")
+        rmtree(f"{self.outdir}/xtbtmp_{dirId}")
         
         return finalmol, en
 

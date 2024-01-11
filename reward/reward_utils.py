@@ -117,7 +117,6 @@ def check_smiles_change(beforemol, aftermol):
     """
     # Get the smiles of the original guest
     before_smiles = Chem.MolToSmiles(beforemol, canonical=True)
-    print("BEFORE:", before_smiles)
 
     # Get the smiles of the optimised guest
     conn_mol = Chem.Mol(aftermol)
@@ -127,7 +126,6 @@ def check_smiles_change(beforemol, aftermol):
     try:
         rdDetermineBonds.DetermineBondOrders(conn_mol)
         after_smiles = Chem.MolToSmiles(conn_mol, canonical=True)
-        print("AFTER:", after_smiles)
     except:
         is_changed = True
         return is_changed

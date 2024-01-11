@@ -99,7 +99,7 @@ class ChemSim():
             guestmol = process_smi(mol, self.conf["molgen_n_confs"], self.conf["molgen_rmsd_threshold"])
         except:
             print("END - bad conformer")
-            guestmol.SetDoubleProp("en", 20.1)
+            nullmol.SetDoubleProp("en", 20.1)
             return get_property_mol(nullmol)
         fix_charge(guestmol)
 
