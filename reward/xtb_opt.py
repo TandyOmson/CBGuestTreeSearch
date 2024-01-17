@@ -37,7 +37,8 @@ class xtbEnergy():
         en = self.get_en()
 
         # Additional outputs are assigned as class attributes
-        # if self.conf["additional_ens"]:
+        if self.conf["additional_ens"]:
+            self.get_additional_ens(finalmol)
 
         # if self.conf["partial_charges"]:
 
@@ -50,7 +51,10 @@ class xtbEnergy():
         """ Optimises from an sdf file """
 
         sp.run(["obabel","-isdf","-osdf",f"{filename}","-O",f"{filename}"],stderr=sp.DEVNULL)
-        cmd = ["xtb", f"{filename}"]
+        if self.conf["additional_ens"]:
+            cmd = ["xtb", "--input", "./../../../reward/xtb_additional.inp", f"{filename}"]
+        else:
+            cmd = ["xtb", f"{filename}"]
 
         if self.is_thermo:
             cmd.append("--ohess")
@@ -84,6 +88,67 @@ class xtbEnergy():
                         break
         return binding
         
-        # def get_additional_ens
+    def get_additional_ens(self, mol):
+        """ Gets additional energies from an xtb output file """
+        gen = (i.split() for i in reversed(open("opt.out","r").readlines()))
+        prop_gen = (i.split() for i in open("properties.out","r").readlines())
 
-        # def get_partial_charges        
+        # Get molecule name
+        en_dict = {}
+
+        for i in gen:
+            if " ".join(i[:3]) == ":: repulsion energy":
+                en_dict["repulsion"]  = float(i[3])
+
+            if " ".join(i[:3]) == ":: -> Gshift":
+                en_dict["Gshift"] = float(i[3])
+
+            if " ".join(i[:3]) == ":: -> Ghb":
+                en_dict["Ghb"] = float(i[3])
+
+            if " ".join(i[:3]) == ":: -> Gsasa":
+                en_dict["Gsasa"] = float(i[3])
+
+            if " ".join(i[:3]) == ":: -> Gelec":
+                en_dict["Gelec"] = float(i[3])
+
+            if " ".join(i[:3]) == ":: -> Gsolv":
+                en_dict["Gsolv"] = float(i[3])
+
+            if " ".join(i[:3]) == ":: -> dispersion":
+                en_dict["disp"] = float(i[3])
+
+            if " ".join(i[:4]) == ":: -> anisotropic XC":
+                en_dict["aniso_XC"] = float(i[4])
+
+            if " ".join(i[:4]) == ":: -> anisotropic ES":
+                en_dict["aniso_ES"] = float(i[4])
+
+            if " ".join(i[:4]) == ":: -> isotropic ES":
+                en_dict["iso_ES"] = float(i[4])
+        
+        for i in prop_gen:
+            count = 0
+            try:
+                if i[0] == "full:":
+                    if count == 0:
+                        en_dict["dipole_x"] = float(i[1])
+                        en_dict["dipole_y"] = float(i[2])
+                        en_dict["dipole_z"] = float(i[3])
+                        count += 1
+                    if count == 1:
+                        en_dict["quadrupole_xx"] = float(i[1])
+                        en_dict["quadrupole_xy"] = float(i[2])
+                        en_dict["quadrupole_yy"] = float(i[3])
+                        en_dict["quadrupole_xz"] = float(i[4])
+                        en_dict["quadrupole_yz"] = float(i[5])
+                        en_dict["quadrupole_zz"] = float(i[6])
+            except:
+                continue
+
+        for key, val in en_dict.items():
+            mol.SetProp(f"xtb_{key}", str(val))    
+
+        return
+
+    # def get_partial_charges        
