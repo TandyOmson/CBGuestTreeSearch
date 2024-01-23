@@ -47,12 +47,16 @@ class ChemSim():
         # if standalone, make it a pickle (to include structures, else just a csv)
         if self.is_standalone:
             self.outfile = os.path.join(self.outdir, "chem_sim.pkl")
+            self.guestfile = os.path.join(self.outdir, "guest_sim.pkl")
             self.df = pd.DataFrame(columns=self.proplist.append("binding_mol"))
+            self.guestdf = pd.DataFrame(columns=self.proplist.append("binding_mol"))
         else:
             self.outfile = os.path.join(self.outdir, "chem_sim.csv")
+            self.guestfile = os.path.join(self.outdir, "guest_sim.csv")
             self.df = pd.DataFrame(columns=self.proplist)
+            self.guestdf = pd.DataFrame(columns=self.proplist)
 
-    def flush(self, propertymol):
+    def flush(self, propertymol, guest=False):
         """ Writes the output of a molecule to the output file
             Properties are written to the propertymol based on the config
         """
@@ -71,17 +75,28 @@ class ChemSim():
             moldict["mol"] = propertymol
             num = len(self.df) + 1
             df_mol = pd.DataFrame(moldict, index=[num])
-            self.df = pd.concat([self.df, df_mol],axis=0)
-            self.df.to_pickle(self.outfile)
+            if guest:
+                self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
+                self.guestdf.to_pickle(self.guestfile)
+            else:
+                self.df = pd.concat([self.df, df_mol], axis=0)
+                self.df.to_pickle(self.outfile)
         else:
             # Convert the propertymol to a dictionary
             moldict = {}
             for i in propertymol.GetPropNames():
-                moldict[i] = propertymol.GetProp(i)
+                try:
+                    moldict[i] = float(propertymol.GetProp(i))
+                except:
+                    moldict[i] = propertymol.GetProp(i)
             num = len(self.df) + 1
             df_mol = pd.DataFrame(moldict, index=[num])
-            self.df = pd.concat([self.df, df_mol],axis=0)
-            self.df.to_csv(self.outfile)
+            if guest:
+                self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
+                self.guestdf.to_csv(self.guestfile)
+            else:
+                self.df = pd.concat([self.df, df_mol], axis=0)
+                self.df.to_csv(self.outfile)
 
     def run(self, mol):
         """ Runs the chemistry simulator based on the setup for one mol
@@ -196,6 +211,7 @@ class ChemSim():
         
         bind_en = complex_en - guest_en - self.host_en
         optcomplexmol.SetDoubleProp("en", bind_en)
+        optguestmol.SetDoubleProp("en", guest_en)
 
         # For docking testing, add scores from binding poses
         # try:
@@ -203,8 +219,6 @@ class ChemSim():
         #         optcomplexmol.SetDoubleProp("en_" + str(rank), i)
         # except:
         #     print("NOTE - couldn't add pose scores to mol object")
-
-        # Additional optional outputs from binding energy calculation
 
         return get_property_mol(optcomplexmol), get_property_mol(optguestmol)
     
@@ -259,5 +273,5 @@ if __name__ == "__main__":
         molout, guestmolout = simulator.run(mol)
         simulator.flush(molout)
         if guestmolout is not None:
-            simulator.flush(guestmolout)
+            simulator.flush(guestmolout, guest=True)
         print("done ", count)

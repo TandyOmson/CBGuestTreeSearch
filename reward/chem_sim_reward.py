@@ -29,7 +29,7 @@ class CBDock_reward(Reward):
             # Record additional properties from ChemSim (only complex included in reward functions)
             simulator.flush(finalmol)
             if guestmol is not None:
-                simulator.flush(guestmol)
+                simulator.flush(guestmol, guest=True)
 
             return finalmol
 

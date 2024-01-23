@@ -43,7 +43,7 @@ class xtbEnergy():
         # if self.conf["partial_charges"]:
 
         os.chdir(orgdir)
-        rmtree(f"{self.outdir}/xtbtmp_{dirId}")
+        # rmtree(f"{self.outdir}/xtbtmp_{dirId}")
         
         return finalmol, en
 
@@ -79,11 +79,11 @@ class xtbEnergy():
         for i in gen:
             if i:
                 if self.is_thermo:
-                    if " ".join(i[:4]) == ":: total free energy":
+                    if " ".join(i[:4]) == "| TOTAL FREE ENERGY":
                         binding = float(i[4])*627.5095
                         break
                 else:
-                    if " ".join(i[:3]) == ":: total energy":
+                    if " ".join(i[:3]) == "| TOTAL ENERGY":
                         binding = float(i[3])*627.5095
                         break
         return binding
@@ -97,6 +97,12 @@ class xtbEnergy():
         en_dict = {}
 
         for i in gen:
+            if " ".join(i[:3]) == ":: G(RRHO) contrib.":
+                en_dict["thermo"] = float(i[3])
+
+            if " ".join(i[:3]) == ":: zero point":
+                en_dict["zero_point"] = float(i[4])
+
             if " ".join(i[:3]) == ":: repulsion energy":
                 en_dict["repulsion"]  = float(i[3])
 
