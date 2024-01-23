@@ -43,7 +43,7 @@ class xtbEnergy():
         # if self.conf["partial_charges"]:
 
         os.chdir(orgdir)
-        # rmtree(f"{self.outdir}/xtbtmp_{dirId}")
+        rmtree(f"{self.outdir}/xtbtmp_{dirId}")
         
         return finalmol, en
 
