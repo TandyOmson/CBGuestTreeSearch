@@ -32,7 +32,9 @@ class xtbEnergy():
         try:
             finalmol = Chem.MolFromMolFile("xtbopt.sdf",removeHs=False,sanitize=False)
         except:
-            print("didnt optimise")
+            os.chdir(orgdir)
+            rmtree(f"{self.outdir}/xtbtmp_{dirId}")
+            raise ValueError
 
         en = self.get_en()
 
