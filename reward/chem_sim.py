@@ -115,7 +115,7 @@ class ChemSim():
         except:
             print("END - bad conformer")
             nullmol.SetDoubleProp("en", 20.1)
-            return get_property_mol(nullmol), None
+            return get_property_mol(nullmol), get_property_mol(nullmol)
         fix_charge(guestmol)
 
         # If the guest is too large, set bad score
@@ -124,7 +124,7 @@ class ChemSim():
         except:
             print("END - bad conformer")
             guestmol.SetDoubleProp("en", 20.1)
-            return get_property_mol(nullmol), None
+            return get_property_mol(nullmol), get_property_mol(nullmol)
             
         if not is_small:
             if self.conf["vina_large_guest"]:
@@ -140,12 +140,12 @@ class ChemSim():
                 except:
                     guestmol.SetDoubleProp("en", 20.2)
                     print("END = - guest too large, couldnt dock by vina")
-                    return get_property_mol(guestmol), None
+                    return get_property_mol(guestmol), get_property_mol(nullmol)
 
             else:
                 guestmol.SetDoubleProp("en", 20.2)
                 print("END = - guest too large")
-                return get_property_mol(guestmol), None
+                return get_property_mol(guestmol), get_property_mol(nullmol)
         
         # 2. Dock the best conformer
         # note that currently this takes the best result from docking. 
@@ -180,7 +180,7 @@ class ChemSim():
             elif i == complexmols.GetNumConformers()-1:
                 print("END - Exo complex")
                 guestmol.SetDoubleProp("en", 20.3)
-                return get_property_mol(guestmol), None
+                return get_property_mol(guestmol), get_property_mol(guestmol)
         
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
@@ -193,21 +193,21 @@ class ChemSim():
         except:
             print("END - couldn't optimise")
             nullmol.SetDoubleProp("en", 20.4)
-            return get_property_mol(nullmol), None
+            return get_property_mol(nullmol), get_property_mol(nullmol)
         
         # If the result of xTB optimisation is exo, set bad score
         exo = is_exo(optcomplexmol, self.hostmol, self.conf)
         if exo:
             print("END - Exo complex")
             guestmol.SetDoubleProp("en", 20.5)
-            return get_property_mol(guestmol), None
+            return get_property_mol(guestmol), get_property_mol(guestmol)
         
         # Check if the smiles of the guest have changed
         changed = check_smiles_change(optguestmol, Chem.GetMolFrags(optcomplexmol, asMols=True)[1])
         if changed:
             print("END - Smiles changed")
             optcomplexmol.SetDoubleProp("en", 20.6)
-            return get_property_mol(optcomplexmol), None
+            return get_property_mol(optcomplexmol), get_property_mol(optguestmol)
         
         bind_en = complex_en - guest_en - self.host_en
         optcomplexmol.SetDoubleProp("en", bind_en)
@@ -272,6 +272,5 @@ if __name__ == "__main__":
         mol = Chem.MolFromSmiles(i)
         molout, guestmolout = simulator.run(mol)
         simulator.flush(molout)
-        if guestmolout is not None:
-            simulator.flush(guestmolout, guest=True)
+        simulator.flush(guestmolout, guest=True)
         print("done ", count)
