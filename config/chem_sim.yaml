@@ -4,7 +4,7 @@ c_val: 0.75
 threshold_type: generation_num
 hours: 72.0
 generation_num: 15000
-output_dir: result/problem
+output_dir: result/top_50
 use_selfies: False
 model_setting:
   model_json: model/8992HCs/model.tf25.json
@@ -84,7 +84,7 @@ min_rmsd: 3.0
 thermo: True
 solvent: True
 optlevel: normal
-additional_ens: False
+additional_ens: True
 partial_charges: False
 
 # Parrallelisation strategy
