@@ -127,10 +127,7 @@ class ChemSim():
             return get_property_mol(nullmol), get_property_mol(nullmol)
 
         # 2. Dock the best conformer
-        # note that currently this takes the best result from docking. 
-        # I may want to do a quick optimisation on the top few complexes if they are very close together, but have large difference in pose
         print("STATUS - docking")
-
         dock = DockLigand(self.hostmol, self.conf)
         
         if not is_small:
@@ -152,8 +149,8 @@ class ChemSim():
                 complexmols, scores = dock.score_map_vina(guestmol)
             except:
                 complexmols, scores = dock.score_map_comb(guestmol)
-        
-        # Complexmols are ordered by score, so check through until an exo complex (pre xtb optimisation) is found
+
+        # Complexes are returned as conformers
         for i in range(complexmols.GetNumConformers()):
             exo = is_exo(complexmols, self.hostmol, self.conf, confId=i)
             if not exo:
@@ -161,6 +158,7 @@ class ChemSim():
                 complexmol.RemoveAllConformers()
                 complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
                 break
+            # If all conformers are exo, end
             elif i == complexmols.GetNumConformers()-1:
                 print("END - Exo complex")
                 guestmol.SetDoubleProp("en", 20.3)

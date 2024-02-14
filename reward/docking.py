@@ -318,11 +318,12 @@ class DockLigand():
             return vina_ens[0]
 
 if __name__ == "__main__":
-    # working on this on branch vina_scoring_edit
-    # access it with git checkout vina_scoring_edit
-    # push it with git -u origin vina_scoring_edit
+    # working on this on branch docking_module_edit
+    # access it with git checkout docking_module_edit
+    # push it with git -u origin docking_module_edit
     # merge later on
     from smi2sdf import process_smi
+    from reward_utils import is_exo
 
     smi = "c12=CC=CC=c1cccc2"
     mol = Chem.MolFromSmiles(smi)
@@ -334,7 +335,7 @@ if __name__ == "__main__":
         newhost = Chem.Conformer(hostmol.GetConformer(0))
         hostmol.AddConformer(newhost, assignId=True)
 
-    # Test]
+    # Test
     dock = DockLigand(hostmol, {"vina_num_rotations":4, "vina_num_translations":4, "host_pdbqt":"data/host_aligned.pdbqt"})
     finalcomplex = dock.score_map_comb(guestmol)
 
