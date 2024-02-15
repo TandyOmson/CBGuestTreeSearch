@@ -117,9 +117,12 @@ class DockLigand():
         vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
 
         for setup in mol_setups:
-            pdbqt_string, is_ok, _ = PDBQTWriterLegacy.write_string(setup)
-        if is_ok:
-            vinaobj.set_ligand_from_string(pdbqt_string)
+            pdbqt_string, is_ok, err_msg = PDBQTWriterLegacy.write_string(setup, bad_charge_ok=True)
+
+        if not is_ok:
+            print(err_msg)
+
+        vinaobj.set_ligand_from_string(pdbqt_string)
 
         _ = vinaobj.optimize()
         vinaobj.dock(exhaustiveness=exhaustiveness, n_poses=n_poses, min_rmsd=min_rmsd)
@@ -290,9 +293,12 @@ class DockLigand():
         preparator = MoleculePreparation(merge_these_atom_types=[])
         mol_setups = preparator.prepare(guestmol)
         for setup in mol_setups:
-            pdbqt_string, is_ok, _ = PDBQTWriterLegacy.write_string(setup)
-        if is_ok:
-            vinaobj.set_ligand_from_string(pdbqt_string)
+            pdbqt_string, is_ok, err_msg = PDBQTWriterLegacy.write_string(setup, bad_charge_ok=True)
+
+        if not is_ok:
+            print(err_msg)
+        
+        vinaobj.set_ligand_from_string(pdbqt_string)
         opt_ens = vinaobj.optimize()
 
         # Account for multiple workers
@@ -310,9 +316,12 @@ class DockLigand():
             preparator = MoleculePreparation()
             mol_setups = preparator.prepare(guestmol)
             for setup in mol_setups:
-                pdbqt_string, is_ok, _ = PDBQTWriterLegacy.write_string(setup)
-            if is_ok:
-                vinaobj.set_ligand_from_string(pdbqt_string)
+                pdbqt_string, is_ok, err_msg = PDBQTWriterLegacy.write_string(setup, bad_charge_ok=True)
+
+            if not is_ok:
+                print(err_msg)
+        
+            vinaobj.set_ligand_from_string(pdbqt_string)
             vina_ens = vinaobj.score()
 
             return vina_ens[0]
@@ -350,12 +359,20 @@ if __name__ == "__main__":
     import pandas as pd
 
     # Grab benchmark guests
-    guests = [Chem.MolFromMolFile(i, removeHs=False, sanitize=False) for i in glob("data/top_10_spartan/*guest*")]
+    guests = [Chem.MolFromMolFile(i, removeHs=False, sanitize=False) for i in glob("./../data/top_10_spartan/*guest*")]
     hostmol = Chem.MolFromMolFile("data/host_aligned.sdf", removeHs=False, sanitize=False)
     hostpdbqtfile = "data/host_aligned.pdbqt"
+    print(guests)
 
     # Code for testing docking
-    conf = {"vina_num_rotations":4, "vina_num_translations":4, "host_pdbqt":"data/host_aligned.pdbqt"}
+    conf = {"vina_num_rotations":4,
+            "vina_num_translations":4, 
+            "centroid_diff_threshold": 4,
+            "cavity_atoms_threshold": 6,
+            "exhaustiveness": 32,
+            "n_poses": 5,
+            "min_rmsd": 3.0,
+            "host_pdbqt":"data/host_aligned.pdbqt"}
 
     # Add a conformer to the host of each generated pose
     n_poses = (conf["vina_num_rotations"])*(conf["vina_num_translations"])
@@ -390,7 +407,7 @@ if __name__ == "__main__":
             complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
 
             exo = is_exo(complexmol, hostmol, conf, confId=i)
-            vina_dock = vina_score.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
+            vina_score = vina_score.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
     end_time_score = time.time()
 
     # Calculate the elapsed time for each loop
@@ -399,3 +416,5 @@ if __name__ == "__main__":
 
     print("Elapsed time for vina_dock loop:", elapsed_time_dock, "seconds")
     print("Elapsed time for vina_score loop:", elapsed_time_score, "seconds")
+    print(vina_dock)
+    print(vina_score)
