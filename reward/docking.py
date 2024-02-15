@@ -359,10 +359,13 @@ if __name__ == "__main__":
     import pandas as pd
 
     # Grab benchmark guests
-    guests = [Chem.MolFromMolFile(i, removeHs=False, sanitize=False) for i in glob("./../data/top_10_spartan/*guest*")]
+    mols = [Chem.MolFromMolFile(i, removeHs=False, sanitize=False) for i in glob("./../data/top_10_spartan/*guest*")]
     hostmol = Chem.MolFromMolFile("data/host_aligned.sdf", removeHs=False, sanitize=False)
     hostpdbqtfile = "data/host_aligned.pdbqt"
-    print(guests)
+    print(mols)
+
+    smis = [Chem.MolToSmiles(i) for i in mols]
+    guests = [process_smi(Chem.MolFromSmiles(i), 1, 0.35) for i in smis]
 
     # Code for testing docking
     conf = {"vina_num_rotations":4,
@@ -383,9 +386,10 @@ if __name__ == "__main__":
     dock = DockLigand(hostmol, conf)
     
     # Comparing vina opt and vina dock
+    print("vina docking")
     vina_dock = pd.DataFrame(columns=["complex", "score", "is_exo"])
     start_time_dock = time.time()
-    for guestmol in guests:
+    for count, guestmol in enumerate(guests):
         complexmols, scores = dock.vina_dock(guestmol)
         for i in range(complexmols.GetNumConformers()):
             complexmol = Chem.Mol(complexmols)
@@ -394,12 +398,14 @@ if __name__ == "__main__":
 
             exo = is_exo(complexmol, hostmol, conf, confId=i)
             vina_dock = vina_dock.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
+        print(count, "done", end="\r")
     end_time_dock = time.time()
 
      # Comparing vina opt and vina dock
+    print("vina scoring")
     vina_score = pd.DataFrame(columns=["complex", "score", "is_exo"])
     start_time_score = time.time()
-    for guestmol in guests:
+    for count, guestmol in enumerate(guests):
         complexmols, scores = dock.score_map_vina(guestmol)
         for i in range(complexmols.GetNumConformers()):
             complexmol = Chem.Mol(complexmols)
@@ -408,6 +414,7 @@ if __name__ == "__main__":
 
             exo = is_exo(complexmol, hostmol, conf, confId=i)
             vina_score = vina_score.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
+        print(count, "done", end="\r")
     end_time_score = time.time()
 
     # Calculate the elapsed time for each loop
