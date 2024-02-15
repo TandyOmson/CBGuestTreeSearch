@@ -214,7 +214,7 @@ class DockLigand():
         
         return finalcomplex, scores
     
-    def align_mol(mol):
+    def align_mol(self, mol):
         """ Align principal axis of a molecule along the z axis 
         """
         guest_atoms = [atm.GetSymbol() for atm in mol.GetAtoms()]
@@ -261,7 +261,7 @@ class DockLigand():
 
         return transform_coord_centered
 
-    def transform_coords(coords, rotate_by, translate_by):
+    def transform_coords(self, coords, rotate_by, translate_by):
         """ Transforms the coordinates
             Rotates up to 90 degrees in one direction (symmetry of CBs)
             and translates along z-axis up to +4 (cavity has height ~9 A)
@@ -275,7 +275,7 @@ class DockLigand():
 
         return coords
 
-    def modify_pdbqt_str(pdbqt_str, new_coords):
+    def modify_pdbqt_str(self, pdbqt_str, new_coords):
         """ Changes the coordinates of a pdbqt string to new coordinates
         """
         pdbqt_lines = pdbqt_str.split('\n')
@@ -289,7 +289,7 @@ class DockLigand():
         new_pdbqt_str = '\n'.join(new_pdbqt_lines)
         return new_pdbqt_str
 
-    def vina_opt(guestmol, vinaobj):
+    def vina_opt(self, guestmol, vinaobj):
         preparator = MoleculePreparation(merge_these_atom_types=[])
         mol_setups = preparator.prepare(guestmol)
         for setup in mol_setups:
@@ -312,7 +312,7 @@ class DockLigand():
 
         return opt_ens[0], rdkitmols[0]
 
-    def vina_scoring(guestmol, vinaobj):
+    def vina_scoring(self, guestmol, vinaobj):
             preparator = MoleculePreparation()
             mol_setups = preparator.prepare(guestmol)
             for setup in mol_setups:
@@ -346,7 +346,6 @@ class DockLigand():
 
         return complexmol   
 
-
 if __name__ == "__main__":
     # working on this on branch docking_module_edit
     # access it with git checkout docking_module_edit
@@ -365,7 +364,9 @@ if __name__ == "__main__":
     print(mols)
 
     smis = [Chem.MolToSmiles(i) for i in mols]
+    smis = ["c12=CC=CC=c1cccc2", "CC"]
     guests = [process_smi(Chem.MolFromSmiles(i), 1, 0.35) for i in smis]
+    print("confs generated")
 
     # Code for testing docking
     conf = {"vina_num_rotations":4,
@@ -373,7 +374,7 @@ if __name__ == "__main__":
             "centroid_diff_threshold": 4,
             "cavity_atoms_threshold": 6,
             "exhaustiveness": 32,
-            "n_poses": 5,
+            "n_poses": 10,
             "min_rmsd": 3.0,
             "host_pdbqt":"data/host_aligned.pdbqt"}
 
@@ -391,14 +392,19 @@ if __name__ == "__main__":
     start_time_dock = time.time()
     for count, guestmol in enumerate(guests):
         complexmols, scores = dock.vina_dock(guestmol)
+        pose_scores = []
+        pose_exo = []
         for i in range(complexmols.GetNumConformers()):
             complexmol = Chem.Mol(complexmols)
             complexmol.RemoveAllConformers()
             complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
+            exo = is_exo(complexmol, hostmol, conf, confId=0)
 
-            exo = is_exo(complexmol, hostmol, conf, confId=i)
-            vina_dock = vina_dock.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
-        print(count, "done", end="\r")
+            pose_scores.append(scores[i][0])
+            pose_exo.append(exo)
+
+        vina_dock = vina_dock.append({"complex":complexmol, "smiles":smis[count], "score":pose_scores, "is_exo":pose_exo}, ignore_index=True)
+        print(count, "done")
     end_time_dock = time.time()
 
      # Comparing vina opt and vina dock
@@ -407,14 +413,20 @@ if __name__ == "__main__":
     start_time_score = time.time()
     for count, guestmol in enumerate(guests):
         complexmols, scores = dock.score_map_vina(guestmol)
+        pose_scores = []
+        pose_exo = []
         for i in range(complexmols.GetNumConformers()):
             complexmol = Chem.Mol(complexmols)
             complexmol.RemoveAllConformers()
             complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
 
-            exo = is_exo(complexmol, hostmol, conf, confId=i)
-            vina_score = vina_score.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
-        print(count, "done", end="\r")
+            exo = is_exo(complexmol, hostmol, conf, confId=0)
+
+            pose_scores.append(scores[i])
+            pose_exo.append(exo)
+
+        vina_score = vina_score.append({"complex":complexmol, "smiles":smis[count], "score":pose_scores, "is_exo":pose_exo}, ignore_index=True)
+        print(count, "done")
     end_time_score = time.time()
 
     # Calculate the elapsed time for each loop
@@ -425,3 +437,6 @@ if __name__ == "__main__":
     print("Elapsed time for vina_score loop:", elapsed_time_score, "seconds")
     print(vina_dock)
     print(vina_score)
+
+    pd.to_pickle(vina_dock, "vina_dock_results.pkl")
+    pd.to_pickle(vina_score, "vina_score_results.pkl")
