@@ -150,19 +150,11 @@ class ChemSim():
             except:
                 complexmols, scores = dock.score_map_comb(guestmol)
 
-        # Complexes are returned as conformers
-        for i in range(complexmols.GetNumConformers()):
-            exo = is_exo(complexmols, self.hostmol, self.conf, confId=i)
-            if not exo:
-                complexmol = Chem.Mol(complexmols)
-                complexmol.RemoveAllConformers()
-                complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
-                break
-            # If all conformers are exo, end
-            elif i == complexmols.GetNumConformers()-1:
-                print("END - Exo complex")
-                guestmol.SetDoubleProp("en", 20.3)
-                return get_property_mol(guestmol), get_property_mol(guestmol)
+        try:
+            complexmol = dock.get_best_pose(complexmols, scores)
+        except ValueError as e:
+            print(e)
+            return get_property_mol(guestmol), get_property_mol(guestmol)
         
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
@@ -210,7 +202,7 @@ if __name__ == "__main__":
     import yaml
 
     from smi2sdf import process_smi
-    from docking import score_map_vina, score_map_comb, vina_dock
+    from docking import DockLigand
     from reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_property_mol
     from xtb_opt import xtbEnergy
     

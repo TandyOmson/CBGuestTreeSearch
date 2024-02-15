@@ -316,6 +316,27 @@ class DockLigand():
             vina_ens = vinaobj.score()
 
             return vina_ens[0]
+    
+    def get_best_pose(self, complexmols, scores):
+        """ From list of poses returns the best pose
+            Rejects poses that are exo
+        """
+         # Complexes are returned as conformers
+        for i in range(complexmols.GetNumConformers()):
+            exo = is_exo(complexmols, hostmol, conf, confId=i)
+            if not exo:
+                complexmol = Chem.Mol(complexmols)
+                complexmol.RemoveAllConformers()
+                complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
+                break
+
+            # If all conformers are exo, end and throw exception
+            elif i == complexmols.GetNumConformers()-1:
+                guestmol.SetDoubleProp("en", 20.3)
+                raise ValueError("All poses are exo")
+
+        return complexmol   
+
 
 if __name__ == "__main__":
     # working on this on branch docking_module_edit
@@ -324,31 +345,41 @@ if __name__ == "__main__":
     # merge later on
     from smi2sdf import process_smi
     from reward_utils import is_exo
+    from glob import glob
 
-    smi = "c12=CC=CC=c1cccc2"
-    mol = Chem.MolFromSmiles(smi)
-    guestmol = process_smi(mol, 1, 0.35)
-    hostmol = Chem.MolFromMolFile("data/host_aligned.sdf",removeHs=False,sanitize=False)
+    # Grab benchmark guests
+    guests = [Chem.MolFromMolFile(i, removeHs=False, sanitize=False) for i in glob("data/top_10_spartan/*guest*")]
+    hostmol = Chem.MolFromMolFile("data/host_aligned.sdf", removeHs=False, sanitize=False)
     hostpdbqtfile = "data/host_aligned.pdbqt"
 
-    for i in range(25+1):
+    # Code for testing docking
+    conf = {"vina_num_rotations":4, "vina_num_translations":4, "host_pdbqt":"data/host_aligned.pdbqt"}
+
+    # Add a conformer to the host of each generated pose
+    n_poses = (conf["vina_num_rotations"])*(conf["vina_num_translations"])
+    for i in range(n_poses+1):
         newhost = Chem.Conformer(hostmol.GetConformer(0))
         hostmol.AddConformer(newhost, assignId=True)
 
-    # Test
-    dock = DockLigand(hostmol, {"vina_num_rotations":4, "vina_num_translations":4, "host_pdbqt":"data/host_aligned.pdbqt"})
-    finalcomplex = dock.score_map_comb(guestmol)
+    dock = DockLigand(hostmol, conf)
+    
+    # Comparing vina opt and vina dock
+    vina_dock = []
+    for guestmol in guests:
+        complexmols, scores = dock.vina_dock(guestmol)
+        try:
+            complexmol = dock.get_best_pose(complexmols, scores)
+            vina_dock.append(complexmol)
+        except ValueError as e:
+            vina_dock.append(Chem.Mol(guestmol))
+            print(e)
 
-    # print("Vina scores post: ",vina_scores)
-    # print("MMFF scores: ",scores)
-
-    # for i,j in zip(scores, vina_scores):
-    #     print("{:.2f} {:.2f}".format(i,j))
-
-    # # Test MMFF94
-    # finalcomplex, scores = score_map_mmff94(guestmol, hostmol, 5, 5)
-    # print("MMFF scores: ", scores)
-
-    # Write to file
-    writer = Chem.SDWriter("test.sdf")
-    writer.write(finalcomplex)
+    vina_score = []
+    for guestmol in guests:
+        complexmols, scores = dock.score_map_vina(guestmol)
+        try:
+            complexmol = dock.get_best_pose(complexmols, scores)
+            vina_score.append(complexmol)
+        except ValueError as e:
+            vina_score.append(Chem.Mol(guestmol))
+            print(e)
