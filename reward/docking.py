@@ -346,6 +346,8 @@ if __name__ == "__main__":
     from smi2sdf import process_smi
     from reward_utils import is_exo
     from glob import glob
+    import time
+    import pandas as pd
 
     # Grab benchmark guests
     guests = [Chem.MolFromMolFile(i, removeHs=False, sanitize=False) for i in glob("data/top_10_spartan/*guest*")]
@@ -364,22 +366,36 @@ if __name__ == "__main__":
     dock = DockLigand(hostmol, conf)
     
     # Comparing vina opt and vina dock
-    vina_dock = []
+    vina_dock = pd.DataFrame(columns=["complex", "score", "is_exo"])
+    start_time_dock = time.time()
     for guestmol in guests:
         complexmols, scores = dock.vina_dock(guestmol)
-        try:
-            complexmol = dock.get_best_pose(complexmols, scores)
-            vina_dock.append(complexmol)
-        except ValueError as e:
-            vina_dock.append(Chem.Mol(guestmol))
-            print(e)
+        for i in range(complexmols.GetNumConformers()):
+            complexmol = Chem.Mol(complexmols)
+            complexmol.RemoveAllConformers()
+            complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
 
-    vina_score = []
+            exo = is_exo(complexmol, hostmol, conf, confId=i)
+            vina_dock = vina_dock.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
+    end_time_dock = time.time()
+
+     # Comparing vina opt and vina dock
+    vina_score = pd.DataFrame(columns=["complex", "score", "is_exo"])
+    start_time_score = time.time()
     for guestmol in guests:
         complexmols, scores = dock.score_map_vina(guestmol)
-        try:
-            complexmol = dock.get_best_pose(complexmols, scores)
-            vina_score.append(complexmol)
-        except ValueError as e:
-            vina_score.append(Chem.Mol(guestmol))
-            print(e)
+        for i in range(complexmols.GetNumConformers()):
+            complexmol = Chem.Mol(complexmols)
+            complexmol.RemoveAllConformers()
+            complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
+
+            exo = is_exo(complexmol, hostmol, conf, confId=i)
+            vina_dock = vina_score.append({"complex":complexmol, "score":scores[i], "is_exo":exo}, ignore_index=True)
+    end_time_score = time.time()
+
+    # Calculate the elapsed time for each loop
+    elapsed_time_dock = end_time_dock - start_time_dock
+    elapsed_time_score = end_time_score - start_time_score
+
+    print("Elapsed time for vina_dock loop:", elapsed_time_dock, "seconds")
+    print("Elapsed time for vina_score loop:", elapsed_time_score, "seconds")
