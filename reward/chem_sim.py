@@ -13,6 +13,7 @@
 from rdkit import Chem
 import pandas as pd
 import os
+from joblib import Parallel, delayed
 
 # Methods for binding calculations
 if __name__ != "__main__":
@@ -20,6 +21,19 @@ if __name__ != "__main__":
     from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_property_mol
     from reward.docking import DockLigand
     from reward.xtb_opt import xtbEnergy
+
+# Class for diagnostic error handling
+class ChemSimError(Exception):
+    def __init__(self, message, original_exception=None):
+        self.message = message
+        self.original_exception = original_exception
+        super().__init__(self.message)
+
+    def __str__(self):
+        if self.original_exception:
+            return f"{self.message}. Original exception: {type(self.original_exception).__name__}: {str(self.original_exception)}"
+        else:
+            return self.message
 
 class ChemSim():
     """ Contains the chemitry simulator
@@ -73,14 +87,18 @@ class ChemSim():
                 propertymol.ClearProp(i)
             # Add the mol back to get the complexed structure
             moldict["mol"] = propertymol
-            num = len(self.df) + 1
-            df_mol = pd.DataFrame(moldict, index=[num])
             if guest:
+                num = len(self.guestdf) + 1
+                df_mol = pd.DataFrame(moldict, index=[num])
                 self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
                 self.guestdf.to_pickle(self.guestfile)
             else:
+                num = len(self.df) + 1
+                df_mol = pd.DataFrame(moldict, index=[num])
                 self.df = pd.concat([self.df, df_mol], axis=0)
                 self.df.to_pickle(self.outfile)
+
+        # If running as part of MCTS, write to csv     
         else:
             # Convert the propertymol to a dictionary
             moldict = {}
@@ -89,12 +107,14 @@ class ChemSim():
                     moldict[i] = float(propertymol.GetProp(i))
                 except:
                     moldict[i] = propertymol.GetProp(i)
-            num = len(self.df) + 1
-            df_mol = pd.DataFrame(moldict, index=[num])
             if guest:
+                num = len(self.guestdf) + 1
+                df_mol = pd.DataFrame(moldict, index=[num])
                 self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
                 self.guestdf.to_csv(self.guestfile)
             else:
+                num = len(self.df) + 1
+                df_mol = pd.DataFrame(moldict, index=[num])
                 self.df = pd.concat([self.df, df_mol], axis=0)
                 self.df.to_csv(self.outfile)
 
@@ -103,96 +123,77 @@ class ChemSim():
             The relevant output is the return property mol containing binding energy and complex geoemtry
             All other ouput is handled by the ChemSim class methods
         """
-
-        # Create a null molecule out (a molecule with no atoms) to keep indexes in output structure files
-        nullmol = Chem.MolFromSmiles("C")
-        nullmol.SetDoubleProp("en", 20.0)
-
         # 1. Generate conformers
-        print("STATUS - generating conformers")
+        #print("STATUS - generating conformers")
         try:
             guestmol = process_smi(mol, self.conf["molgen_n_confs"], self.conf["molgen_rmsd_threshold"])
-        except:
-            print("END - bad conformer")
-            nullmol.SetDoubleProp("en", 20.1)
-            return get_property_mol(nullmol), get_property_mol(nullmol)
+        except Exception as e:
+            raise ChemSimError("Error in conformer generation") from e
+        
         fix_charge(guestmol)
 
         # If the guest is too large, set bad score
         try:
             is_small = is_small_cylinder(guestmol)
         except:
-            print("END - bad conformer")
-            guestmol.SetDoubleProp("en", 20.1)
-            return get_property_mol(nullmol), get_property_mol(nullmol)
+            is_small = True
 
         # 2. Dock the best conformer
-        print("STATUS - docking")
+        #print("STATUS - docking")
         dock = DockLigand(self.hostmol, self.conf)
         
         if not is_small:
             if self.conf["vina_large_guest"]:
                 try:
                     complexmols, scores = dock.vina_dock(guestmol)
-                except:
-                    guestmol.SetDoubleProp("en", 20.2)
-                    print("END = - guest too large, couldnt dock by vina")
-                    return get_property_mol(guestmol), get_property_mol(nullmol)
+                except Exception as e:
+                    raise ChemSimError("Error in vina docking of large guest") from e
 
             else:
-                guestmol.SetDoubleProp("en", 20.2)
-                print("END = - guest too large")
-                return get_property_mol(guestmol), get_property_mol(nullmol)
+                raise ChemSimError("Guest too large, vina_large_guest parameter set to False")
         
+        # 3 attempts at docking for small molecules
         if is_small:
             try:
                 complexmols, scores = dock.score_map_vina(guestmol)
             except:
-                complexmols, scores = dock.score_map_comb(guestmol)
+                try:
+                    complexmols, scores = dock.score_map_comb(guestmol)
+                except:
+                    try:
+                        complexmols, scores = dock.vina_dock(guestmol)
+                    except Exception as e:
+                        raise ChemSimError("Error in docking of small guest") from e
 
         try:
             complexmol = dock.get_best_pose(complexmols, scores)
         except ValueError as e:
-            print(e)
-            return get_property_mol(guestmol), get_property_mol(guestmol)
+            raise ChemSimError("Error in getting best pose") from e
         
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
         calc = xtbEnergy(self.conf)
         try:
-            print("STATUS - optimising guest")
+            #print("STATUS - optimising guest")
             optguestmol, guest_en = calc.get_opt(guestmol)
-            print("STATUS - optimising complex")
+            #print("STATUS - optimising complex")
             optcomplexmol, complex_en = calc.get_opt(complexmol)
-        except:
-            print("END - couldn't optimise")
-            nullmol.SetDoubleProp("en", 20.4)
-            return get_property_mol(nullmol), get_property_mol(nullmol)
+        except Exception as e:
+            raise ChemSimError("Error in xTB optimisation") from e
         
         # If the result of xTB optimisation is exo, set bad score
         exo = is_exo(optcomplexmol, self.hostmol, self.conf)
         if exo:
-            print("END - Exo complex")
-            guestmol.SetDoubleProp("en", 20.5)
-            return get_property_mol(guestmol), get_property_mol(guestmol)
+            optcomplexmol.SetProp("is_exo", "True")
         
         # Check if the smiles of the guest have changed
         changed = check_smiles_change(optguestmol, Chem.GetMolFrags(optcomplexmol, asMols=True)[1])
         if changed:
-            print("END - Smiles changed")
-            optcomplexmol.SetDoubleProp("en", 20.6)
-            return get_property_mol(optcomplexmol), get_property_mol(optguestmol)
+            optcomplexmol.SetProp("is_changed", "True")
         
         bind_en = complex_en - guest_en - self.host_en
         optcomplexmol.SetDoubleProp("en", bind_en)
         optguestmol.SetDoubleProp("en", guest_en)
-
-        # For docking testing, add scores from binding poses
-        # try:
-        #     for rank, i in enumerate(scores):
-        #         optcomplexmol.SetDoubleProp("en_" + str(rank), i)
-        # except:
-        #     print("NOTE - couldn't add pose scores to mol object")
 
         return get_property_mol(optcomplexmol), get_property_mol(optguestmol)
     
@@ -210,7 +211,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description="",
-        usage=f"python {os.path.basename(__file__)} -c <config_file> i <input_file>"
+        usage=f"python {os.path.basename(__file__)} -c <config_file> -i <input_file>"
     )
     parser.add_argument(
         "-c", "--config", type=str, required=True,
@@ -234,17 +235,31 @@ if __name__ == "__main__":
         newhost = Chem.Conformer(hostmol.GetConformer(0))
         hostmol.AddConformer(newhost, assignId=True)
     
-    # If using multiple properties, turn this into a dictionary
     host_en = conf["host_en"]
     print("globvars set")
 
     df = pd.read_csv(args.input, sep=" ", names=["smiles"], index_col=False)
+    smi_gen = (i for i in df["smiles"])
 
     simulator = ChemSim(conf, hostmol, standalone=True)
     simulator.setup()
-    for count, i in enumerate(df["smiles"],1):
-        mol = Chem.MolFromSmiles(i)
-        molout, guestmolout = simulator.run(mol)
+
+    # Wrapper method with callback for parallel processing
+    def process_molecule_wrapper(simulator, smi):
+        try:
+            mol = Chem.MolFromSmiles(smi)
+            molout, guestmolout = simulator.run(mol)
+
+            molout.SetProp("smiles", smi)
+            guestmolout.SetProp("smiles", smi)
+
+        except Exception as e:
+            print("Problem with smiles: ", smi)
+            print(e)
+            return None
+        
         simulator.flush(molout)
         simulator.flush(guestmolout, guest=True)
-        print("done ", count)
+
+    with Parallel(n_jobs=8, prefer="processes", verbose=51) as parallel:
+        results = parallel(delayed(process_molecule_wrapper)(simulator, smi) for smi in smi_gen)

@@ -25,7 +25,20 @@ class CBDock_reward(Reward):
 
             simulator = ChemSim(conf, hostmol)
             simulator.setup()
-            finalmol, guestmol = simulator.run(mol)
+            try:
+                finalmol, guestmol = simulator.run(mol)
+            except Exception as e:
+                print("problem with smiles:", Chem.MolToSmiles(mol))
+                print(e)
+
+                # Still have to flush to keep SMILES in MCTS results corresponding to ChemSim results
+                nullmol = Chem.MolFromSmiles("C")
+                nullmol.SetDoubleProp("en", 20.0)
+                simulator.flush(nullmol)
+                simulator.flush(nullmol, guest=True)
+
+                return None
+                
             # Record additional properties from ChemSim (only complex included in reward functions)
             simulator.flush(finalmol)
             simulator.flush(guestmol, guest=True)
@@ -44,13 +57,15 @@ class CBDock_reward(Reward):
     def calc_reward_from_objective_values(values, conf):
         """ Must return a float based on results of objective functions (values) 
         """
+        if values[0] is None:
+            return -1.0
+
         binding_en = float(values[0].GetProp("en"))
         #sa_score = values[1]
         print("binding: ", binding_en)
 
         # Use base score as rough binding energy of adamantane 
-        base_score = -10.0
-
+        base_score = -20.0
         score_diff = binding_en - base_score
         
         # + sa_score/5.0
