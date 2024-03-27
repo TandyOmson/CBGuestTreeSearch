@@ -279,26 +279,29 @@ if __name__ == "__main__":
             
             # Try top conformers (number determined by conf["molgen_n_confs"])
             # Set optlevel
-            org_optlevel = conf["optlevel"]
-            org_thermo = conf["thermo"]
-            conf["optlevel"] = "loose"
-            conf["thermo"] = False
+            if conf["molgen_n_confs"] > 1:
+                org_optlevel = conf["optlevel"]
+                org_thermo = conf["thermo"]
+                conf["optlevel"] = "loose"
+                conf["thermo"] = False
 
-            molsout = []
-            guestmolsout = []
-            for i in confs:
-                molout, guestmolout = simulator.run(mol)
+                molsout = []
+                guestmolsout = []
+                for i in confs:
+                    molout, guestmolout = simulator.run(mol)
 
-                molsout.append(molout)
-                guestmolsout.append(guestmolout)
+                    molsout.append(molout)
+                    guestmolsout.append(guestmolout)
 
-            # Identify the best binding energy from crude optimisation
-            bind_ens = [i.GetDoubleProp("en") for i in molsout]
-            best_idx = np.argmin(bind_ens)
-            molout, guestmolout = molsout[best_idx], guestmolsout[best_idx]
+                # Identify the best binding energy from crude optimisation
+                bind_ens = [i.GetDoubleProp("en") for i in molsout]
+                print(bind_ens)
+                best_idx = np.argmin(bind_ens)
+                print([best_idx].GetDoubleProp("en"))
+                molout, guestmolout = molsout[best_idx], guestmolsout[best_idx]
 
-            conf["optlevel"] = org_optlevel
-            conf["thermo"] = org_thermo
+                conf["optlevel"] = org_optlevel
+                conf["thermo"] = org_thermo
                 
             molout, guestmolout = simulator.run(mol)
             molout.SetProp("smiles", smi)
