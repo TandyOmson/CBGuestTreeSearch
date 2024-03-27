@@ -312,17 +312,6 @@ class DockLigand():
         # Returns a list of rdkit mols
         rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
         
-        """
-        # Account for multiple workers
-        curr = glob("reward/vina_pose_*")
-        vinaobj.write_pose(f'reward/vina_pose_{len(curr)+1}.pdbqt', overwrite=True, remarks="")
-        pdbqt_mol = PDBQTMolecule.from_file(f'reward/vina_pose_{len(curr)+1}.pdbqt', skip_typing=True)
-        # Returns a list of rdkit mols
-        rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
-
-        os.remove(f'reward/vina_pose_{len(curr)+1}.pdbqt')
-        """
-
         return opt_ens[0], rdkitmols[0]
 
     def vina_scoring(self, guestmol, vinaobj):
@@ -346,6 +335,7 @@ class DockLigand():
          # Complexes are returned as conformers
         for i in range(complexmols.GetNumConformers()):
             exo = is_exo(complexmols, self.hostmol, self.conf, confId=i)
+
             if not exo or i == complexmols.GetNumConformers()-1:
                 complexmol = Chem.Mol(complexmols)
                 complexmol.RemoveAllConformers()

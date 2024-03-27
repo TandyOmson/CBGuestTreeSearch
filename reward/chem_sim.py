@@ -17,6 +17,8 @@ from joblib import Parallel, delayed
 import traceback
 import pickle
 
+import traceback
+
 # Methods for binding calculations
 if __name__ != "__main__":
     from reward.smi2sdf import process_smi
