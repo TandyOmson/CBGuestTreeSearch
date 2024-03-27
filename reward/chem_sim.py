@@ -74,51 +74,53 @@ class ChemSim():
             self.df = pd.DataFrame(columns=self.proplist)
             self.guestdf = pd.DataFrame(columns=self.proplist)
 
-    def flush(self, propertymol, count, guest=False):
+    def flush(self, propertymol, guest=False):
         """ Writes the output of a molecule to the output file
             Properties are written to the propertymol based on the config
         """
-        if self.is_standalone:
-            # Convert the propertymol to a dictionary
-            moldict = {}
-            for i in propertymol.GetPropNames():
-                try:
-                    moldict[i] = float(propertymol.GetProp(i))
-                except:
-                    moldict[i] = propertymol.GetProp(i)
-            # Remove the props from the mol to save space
-            for i in propertymol.GetPropNames():
-                propertymol.ClearProp(i)
-            # Add the mol back to get the complexed structure
-            moldict["mol"] = propertymol
-            if guest:
-                df_mol = pd.DataFrame(moldict, index=[count])
-                self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
-                self.guestdf.to_pickle(self.guestfile)
-            else:
-                df_mol = pd.DataFrame(moldict, index=[count])
-                self.df = pd.concat([self.df, df_mol], axis=0)
-                self.df.to_pickle(self.outfile)
+        moldict = {i: float(propertymol.GetProp(i)) if isinstance(propertymol.GetProp(i), float) else propertymol.GetProp(i) 
+                    for i in propertymol.GetPropNames()}
+            
+        # Clear properties in molecule object to save space
+        for i in propertymol.GetPropNames():
+            propertymol.ClearProp(i)
+        # Retain molecule structure
+        moldict["mol"] = propertymol
 
-        # If running as part of MCTS, write to csv     
+        if guest:
+            idx = len(self.guestdf) + 1
+            df_mol = pd.DataFrame(moldict, index=[idx])
+            self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
+            self.guestdf.to_pickle(self.guestfile)
         else:
-            # Convert the propertymol to a dictionary
-            moldict = {}
-            for i in propertymol.GetPropNames():
-                try:
-                    moldict[i] = float(propertymol.GetProp(i))
-                except:
-                    moldict[i] = propertymol.GetProp(i)
-            if guest:
-                num = len(self.guestdf) + 1
-                df_mol = pd.DataFrame(moldict, index=[num])
-                self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
-                self.guestdf.to_csv(self.guestfile)
-            else:
-                num = len(self.df) + 1
-                df_mol = pd.DataFrame(moldict, index=[num])
-                self.df = pd.concat([self.df, df_mol], axis=0)
-                self.df.to_csv(self.outfile)
+            idx = len(self.df) + 1
+            df_mol = pd.DataFrame(moldict, index=[idx])
+            self.df = pd.concat([self.df, df_mol], axis=0)
+            self.df.to_pickle(self.outfile)
+
+    def flush_csv_no_mol(self, propertymol, guest=False):
+        """ Writes the output of a molecule to the output file - for additional energies
+            Mol structure is NOT saved, as this is in the MCTS .pkl
+        """
+        moldict = {i: float(propertymol.GetProp(i)) if isinstance(propertymol.GetProp(i), float) else propertymol.GetProp(i) 
+                       for i in propertymol.GetPropNames()}
+            
+        # Clear properties in molecule object to save space
+        for i in propertymol.GetPropNames():
+            propertymol.ClearProp(i)
+        # Retain molecule structure
+        moldict["mol"] = propertymol
+        
+        if guest:
+            num = len(self.guestdf) + 1
+            df_mol = pd.DataFrame(moldict, index=[num])
+            self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
+            self.guestdf.to_csv(self.guestfile)
+        else:
+            num = len(self.df) + 1
+            df_mol = pd.DataFrame(moldict, index=[num])
+            self.df = pd.concat([self.df, df_mol], axis=0)
+            self.df.to_csv(self.outfile)
 
     def run(self, mol):
         """ Runs the chemistry simulator based on the setup for one mol
@@ -210,7 +212,7 @@ if __name__ == "__main__":
     from xtb_opt import xtbEnergy
     
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
-    os.environ["OMP_NUM_THREADS"] = "8"
+    os.environ["OMP_NUM_THREADS"] = "4"
 
     parser = argparse.ArgumentParser(
         description="",
@@ -251,50 +253,12 @@ if __name__ == "__main__":
     def process_molecule_wrapper(simulator, count, smi):
         try:
             mol = Chem.MolFromSmiles(smi)
-            print("running")
             molout, guestmolout = simulator.run(mol)
 
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
-            
-            #simulator.flush(molout, count)
-            #simulator.flush(guestmolout, count, guest=True)
 
-            # Convert the propertymol to a dictionary
-            moldict = {}
-            for i in molout.GetPropNames():
-                try:
-                    moldict[i] = float(molout.GetProp(i))
-                except:
-                    moldict[i] = molout.GetProp(i)
-            # Remove the props from the mol to save space
-            for i in molout.GetPropNames():
-                molout.ClearProp(i)
-            # Add the mol back to get the complexed structure
-            moldict["mol"] = molout
-
-            # Convert the propertymol to a dictionary
-            guestmoldict = {}
-            for i in guestmolout.GetPropNames():
-                try:
-                    guestmoldict[i] = float(guestmolout.GetProp(i))
-                except:
-                    guestmoldict[i] = guestmolout.GetProp(i)
-            # Remove the props from the mol to save space
-            for i in guestmolout.GetPropNames():
-                guestmolout.ClearProp(i)
-            # Add the mol back to get the complexed structure
-            guestmoldict["mol"] = guestmolout
-
-            df_mol = pd.DataFrame(moldict, index=[count])
-            print("guest", simulator.guestdf)
-            simulator.guestdf = pd.concat([simulator.guestdf, df_mol], axis=0)
-            simulator.guestdf.to_pickle(simulator.guestfile)
-            
-            df_mol = pd.DataFrame(moldict, index=[count])
-            print("complex", simulator.df)
-            simulator.df = pd.concat([simulator.df, df_mol], axis=0)
-            simulator.df.to_pickle(simulator.outfile)
+            return molout, guestmolout          
 
         except Exception as e:
             print("Problem with smiles: ", smi)
@@ -302,5 +266,15 @@ if __name__ == "__main__":
             print(traceback.format_exc())
             return None
         
-    with Parallel(n_jobs=8, prefer="processes", verbose=51) as parallel:
-        results = parallel(delayed(process_molecule_wrapper)(simulator, count, smi) for count, smi in enumerate(smi_gen))
+    def flush_callback(res_generator):
+        for res in res_generator:
+            if res:
+                simulator.flush(res[0])
+                simulator.flush(res[1], guest=True)
+
+        
+    with Parallel(n_jobs=2, prefer="processes", return_as="generator", verbose=51) as parallel:
+        for result in parallel(delayed(process_molecule_wrapper)(simulator, count, smi) for count, smi in enumerate(smi_gen)):
+            if result:
+                simulator.flush(result[0])
+                simulator.flush(result[1], guest=True)
