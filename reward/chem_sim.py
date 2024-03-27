@@ -16,6 +16,7 @@ import os
 from joblib import Parallel, delayed
 import traceback
 import pickle
+import numpy as np
 
 import traceback
 
@@ -122,6 +123,26 @@ class ChemSim():
             self.df = pd.concat([self.df, df_mol], axis=0)
             self.df.to_csv(self.outfile)
 
+    def get_confs(self, mol):
+        """ Generates conformers of a molecule
+            The molgen_n_confs parameter determines how many per molecule to generated
+        """
+        try:
+            guestmol = process_smi(mol, self.conf["molgen_n_confs"], self.conf["molgen_rmsd_threshold"])
+        except Exception as e:
+            raise ChemSimError("Error in conformer generation") from e
+        
+        fix_charge(guestmol)
+
+        confs_as_mols = []
+        for i in guestmol.GetConformers():
+            conf = Chem.Mol(guestmol)
+            conf.RemoveAllConformers()
+            conf.AddConformer(i, assignId=True)
+            confs_as_mols.append(conf)
+
+        return confs_as_mols
+
     def run(self, mol):
         """ Runs the chemistry simulator based on the setup for one mol
             The relevant output is the return property mol containing binding energy and complex geoemtry
@@ -140,6 +161,7 @@ class ChemSim():
         try:
             is_small = is_small_cylinder(guestmol)
         except:
+            # If there is an error in the check, assume it is too large
             is_small = True
 
         # 2. Dock the best conformer
@@ -250,15 +272,39 @@ if __name__ == "__main__":
     simulator.setup()
 
     # Wrapper method with callback for parallel processing
-    def process_molecule_wrapper(simulator, count, smi):
+    def process_molecule_wrapper(simulator, smi):
         try:
             mol = Chem.MolFromSmiles(smi)
-            molout, guestmolout = simulator.run(mol)
+            confs = simulator.get_confs(mol)
+            
+            # Try top conformers (number determined by conf["molgen_n_confs"])
+            # Set optlevel
+            org_optlevel = conf["optlevel"]
+            org_thermo = conf["thermo"]
+            conf["optlevel"] = "loose"
+            conf["thermo"] = False
 
+            molsout = []
+            guestmolsout = []
+            for i in confs:
+                molout, guestmolout = simulator.run(mol)
+
+                molsout.append(molout)
+                guestmolsout.append(guestmolout)
+
+            # Identify the best binding energy from crude optimisation
+            bind_ens = [i.GetDoubleProp("en") for i in molsout]
+            best_idx = np.argmin(bind_ens)
+            molout, guestmolout = molsout[best_idx], guestmolsout[best_idx]
+
+            conf["optlevel"] = org_optlevel
+            conf["thermo"] = org_thermo
+                
+            molout, guestmolout = simulator.run(mol)
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
 
-            return molout, guestmolout          
+            return molout, guestmolout         
 
         except Exception as e:
             print("Problem with smiles: ", smi)
@@ -267,7 +313,7 @@ if __name__ == "__main__":
             return None
         
     with Parallel(n_jobs=2, prefer="processes", return_as="generator", verbose=51) as parallel:
-        for result in parallel(delayed(process_molecule_wrapper)(simulator, count, smi) for count, smi in enumerate(smi_gen)):
+        for result in parallel(delayed(process_molecule_wrapper)(simulator, smi) for smi in smi_gen):
             if result:
                 simulator.flush(result[0])
                 simulator.flush(result[1], guest=True)
