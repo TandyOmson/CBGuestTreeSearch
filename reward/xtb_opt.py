@@ -4,6 +4,7 @@ import os
 import subprocess as sp
 from glob import glob
 from shutil import rmtree
+import tempfile
 
 class xtbEnergy():
     """ Class for handling xTB energy calculation and output
@@ -18,6 +19,27 @@ class xtbEnergy():
 
     def get_opt(self, mol):
         """ Calls methods to optimise a mol and retrieve energy
+        """
+        with tempfile.TemporaryDirectory(dir=f"{self.outdir}") as d:
+            orgdir = os.getcwd()
+            os.chdir(d)
+            Chem.MolToMolFile(mol, "mol.sdf", kekulize=False)
+            self.xtb_opt("mol.sdf")
+
+            try:
+                finalmol = Chem.MolFromMolFile("xtbopt.sdf",removeHs=False,sanitize=False)
+            except:
+                os.chdir(orgdir)
+                rmtree(f"{self.outdir}/xtbtmp_{dirId}")
+                raise ValueError
+
+            en = self.get_en()
+
+            # Additional outputs are assigned as class attributes
+            if self.conf["additional_ens"]:
+                self.get_additional_ens(finalmol)
+            os.chdir(orgdir)
+
         """
         orgdir = os.getcwd()
         # Get current temp dirs
@@ -46,7 +68,7 @@ class xtbEnergy():
 
         os.chdir(orgdir)
         rmtree(f"{self.outdir}/xtbtmp_{dirId}")
-        
+        """
         return finalmol, en
 
     def xtb_opt(self, filename):

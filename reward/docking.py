@@ -6,7 +6,10 @@ from meeko import MoleculePreparation, PDBQTWriterLegacy, PDBQTMolecule, RDKitMo
 import numpy as np
 from glob import glob
 import os
+import tempfile
 from sklearn.decomposition import PCA
+
+from reward_utils import is_exo
 
 # Define class for docking
 class DockLigand():
@@ -301,6 +304,15 @@ class DockLigand():
         vinaobj.set_ligand_from_string(pdbqt_string)
         opt_ens = vinaobj.optimize()
 
+        with tempfile.NamedTemporaryFile(dir=self.conf["output_dir"], delete_on_close=False) as tf:
+            tf.close()
+            vinaobj.write_pose(tf.name, overwrite=True, remarks="")
+            pdbqt_mol = PDBQTMolecule.from_file(tf.name, skip_typing=True)
+
+        # Returns a list of rdkit mols
+        rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+        
+        """
         # Account for multiple workers
         curr = glob("reward/vina_pose_*")
         vinaobj.write_pose(f'reward/vina_pose_{len(curr)+1}.pdbqt', overwrite=True, remarks="")
@@ -309,6 +321,7 @@ class DockLigand():
         rdkitmols = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
 
         os.remove(f'reward/vina_pose_{len(curr)+1}.pdbqt')
+        """
 
         return opt_ens[0], rdkitmols[0]
 
@@ -328,23 +341,18 @@ class DockLigand():
     
     def get_best_pose(self, complexmols, scores):
         """ From list of poses returns the best pose
-            Rejects poses that are exo
+            Rejects poses that are exo (unless its the final pose, which is caught by chem_sim)
         """
          # Complexes are returned as conformers
         for i in range(complexmols.GetNumConformers()):
-            exo = is_exo(complexmols, hostmol, conf, confId=i)
-            if not exo:
+            exo = is_exo(complexmols, self.hostmol, self.conf, confId=i)
+            if not exo or i == complexmols.GetNumConformers()-1:
                 complexmol = Chem.Mol(complexmols)
                 complexmol.RemoveAllConformers()
                 complexmol.AddConformer(complexmols.GetConformer(i), assignId=True)
                 break
 
-            # If all conformers are exo, end and throw exception
-            elif i == complexmols.GetNumConformers()-1:
-                guestmol.SetDoubleProp("en", 20.3)
-                raise ValueError("All poses are exo")
-
-        return complexmol   
+        return complexmol
 
 if __name__ == "__main__":
     # working on this on branch docking_module_edit

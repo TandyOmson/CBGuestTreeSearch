@@ -14,6 +14,8 @@ from rdkit import Chem
 import pandas as pd
 import os
 from joblib import Parallel, delayed
+import traceback
+import pickle
 
 # Methods for binding calculations
 if __name__ != "__main__":
@@ -70,7 +72,7 @@ class ChemSim():
             self.df = pd.DataFrame(columns=self.proplist)
             self.guestdf = pd.DataFrame(columns=self.proplist)
 
-    def flush(self, propertymol, guest=False):
+    def flush(self, propertymol, count, guest=False):
         """ Writes the output of a molecule to the output file
             Properties are written to the propertymol based on the config
         """
@@ -88,13 +90,11 @@ class ChemSim():
             # Add the mol back to get the complexed structure
             moldict["mol"] = propertymol
             if guest:
-                num = len(self.guestdf) + 1
-                df_mol = pd.DataFrame(moldict, index=[num])
+                df_mol = pd.DataFrame(moldict, index=[count])
                 self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
                 self.guestdf.to_pickle(self.guestfile)
             else:
-                num = len(self.df) + 1
-                df_mol = pd.DataFrame(moldict, index=[num])
+                df_mol = pd.DataFrame(moldict, index=[count])
                 self.df = pd.concat([self.df, df_mol], axis=0)
                 self.df.to_pickle(self.outfile)
 
@@ -208,6 +208,7 @@ if __name__ == "__main__":
     from xtb_opt import xtbEnergy
     
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["OMP_NUM_THREADS"] = "8"
 
     parser = argparse.ArgumentParser(
         description="",
@@ -245,21 +246,59 @@ if __name__ == "__main__":
     simulator.setup()
 
     # Wrapper method with callback for parallel processing
-    def process_molecule_wrapper(simulator, smi):
+    def process_molecule_wrapper(simulator, count, smi):
         try:
             mol = Chem.MolFromSmiles(smi)
+            print("running")
             molout, guestmolout = simulator.run(mol)
 
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
+            
+            #simulator.flush(molout, count)
+            #simulator.flush(guestmolout, count, guest=True)
+
+            # Convert the propertymol to a dictionary
+            moldict = {}
+            for i in molout.GetPropNames():
+                try:
+                    moldict[i] = float(molout.GetProp(i))
+                except:
+                    moldict[i] = molout.GetProp(i)
+            # Remove the props from the mol to save space
+            for i in molout.GetPropNames():
+                molout.ClearProp(i)
+            # Add the mol back to get the complexed structure
+            moldict["mol"] = molout
+
+            # Convert the propertymol to a dictionary
+            guestmoldict = {}
+            for i in guestmolout.GetPropNames():
+                try:
+                    guestmoldict[i] = float(guestmolout.GetProp(i))
+                except:
+                    guestmoldict[i] = guestmolout.GetProp(i)
+            # Remove the props from the mol to save space
+            for i in guestmolout.GetPropNames():
+                guestmolout.ClearProp(i)
+            # Add the mol back to get the complexed structure
+            guestmoldict["mol"] = guestmolout
+
+            df_mol = pd.DataFrame(moldict, index=[count])
+            print("guest", simulator.guestdf)
+            simulator.guestdf = pd.concat([simulator.guestdf, df_mol], axis=0)
+            simulator.guestdf.to_pickle(simulator.guestfile)
+            
+            df_mol = pd.DataFrame(moldict, index=[count])
+            print("complex", simulator.df)
+            simulator.df = pd.concat([simulator.df, df_mol], axis=0)
+            simulator.df.to_pickle(simulator.outfile)
 
         except Exception as e:
             print("Problem with smiles: ", smi)
             print(e)
+            print(traceback.format_exc())
             return None
         
-        simulator.flush(molout)
-        simulator.flush(guestmolout, guest=True)
-
     with Parallel(n_jobs=8, prefer="processes", verbose=51) as parallel:
-        results = parallel(delayed(process_molecule_wrapper)(simulator, smi) for smi in smi_gen)
+        results = parallel(delayed(process_molecule_wrapper)(simulator, count, smi) for count, smi in enumerate(smi_gen))
