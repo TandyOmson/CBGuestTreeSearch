@@ -15,6 +15,8 @@ import pandas as pd
 import os
 from joblib import Parallel, delayed
 
+import traceback
+
 # Methods for binding calculations
 if __name__ != "__main__":
     from reward.smi2sdf import process_smi
@@ -256,6 +258,7 @@ if __name__ == "__main__":
         except Exception as e:
             print("Problem with smiles: ", smi)
             print(e)
+            print(traceback.format_exc())
             return None
         
         simulator.flush(molout)

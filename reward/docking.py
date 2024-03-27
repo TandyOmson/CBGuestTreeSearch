@@ -8,6 +8,8 @@ from glob import glob
 import os
 from sklearn.decomposition import PCA
 
+from reward_utils import is_exo
+
 # Define class for docking
 class DockLigand():
     """ Class for carrying out docking operations
@@ -332,7 +334,7 @@ class DockLigand():
         """
          # Complexes are returned as conformers
         for i in range(complexmols.GetNumConformers()):
-            exo = is_exo(complexmols, hostmol, conf, confId=i)
+            exo = is_exo(complexmols, self.hostmol, self.conf, confId=i)
             if not exo:
                 complexmol = Chem.Mol(complexmols)
                 complexmol.RemoveAllConformers()
@@ -344,7 +346,7 @@ class DockLigand():
                 guestmol.SetDoubleProp("en", 20.3)
                 raise ValueError("All poses are exo")
 
-        return complexmol   
+        return complexmol
 
 if __name__ == "__main__":
     # working on this on branch docking_module_edit

@@ -4,7 +4,7 @@ c_val: 0.75
 threshold_type: generation_num
 hours: 72.0
 generation_num: 15000
-output_dir: result/top_50
+output_dir: result/stress_test
 use_selfies: False
 model_setting:
   model_json: model/8992HCs/model.tf25.json
