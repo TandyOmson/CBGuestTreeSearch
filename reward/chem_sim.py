@@ -266,13 +266,6 @@ if __name__ == "__main__":
             print(traceback.format_exc())
             return None
         
-    def flush_callback(res_generator):
-        for res in res_generator:
-            if res:
-                simulator.flush(res[0])
-                simulator.flush(res[1], guest=True)
-
-        
     with Parallel(n_jobs=2, prefer="processes", return_as="generator", verbose=51) as parallel:
         for result in parallel(delayed(process_molecule_wrapper)(simulator, count, smi) for count, smi in enumerate(smi_gen)):
             if result:
