@@ -165,6 +165,7 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
     #check valid smiles
     for i in range(len(new_compound)):
         mol = Chem.MolFromSmiles(new_compound[i])
+        mol.SetProp("_Smiles", str(i))
         if mol is None:
             continue
         _mol = copy.deepcopy(mol)  # Chem.SanitizeMol() modifies `mol` in place
