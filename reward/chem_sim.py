@@ -161,7 +161,7 @@ class ChemSim():
         try:
             is_small = is_small_cylinder(guestmol)
         except:
-            # If there is an error in the check, assume it is too large
+            # If there is an error in the check, assume it is small
             is_small = True
 
         # 2. Dock the best conformer
@@ -288,13 +288,13 @@ if __name__ == "__main__":
                 molsout = []
                 guestmolsout = []
                 for i in confs:
-                    molout, guestmolout = simulator.run(mol)
+                    molout, guestmolout = simulator.run(i)
 
                     molsout.append(molout)
                     guestmolsout.append(guestmolout)
 
                 # Identify the best binding energy from crude optimisation
-                bind_ens = [i.GetDoubleProp("en") for i in molsout]
+                bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
                 print(bind_ens)
                 best_idx = np.argmin(bind_ens)
                 print([best_idx].GetDoubleProp("en"))
