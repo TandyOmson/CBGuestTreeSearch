@@ -143,20 +143,11 @@ class ChemSim():
 
         return confs_as_mols
 
-    def run(self, mol):
+    def run_dock(self, guestmol):
         """ Runs the chemistry simulator based on the setup for one mol
             The relevant output is the return property mol containing binding energy and complex geoemtry
             All other ouput is handled by the ChemSim class methods
         """
-        # 1. Generate conformers
-        #print("STATUS - generating conformers")
-        try:
-            guestmol = process_smi(mol, self.conf["molgen_n_confs"], self.conf["molgen_rmsd_threshold"])
-        except Exception as e:
-            raise ChemSimError("Error in conformer generation") from e
-        
-        fix_charge(guestmol)
-
         # If the guest is too large, set bad score
         try:
             is_small = is_small_cylinder(guestmol)
@@ -196,6 +187,9 @@ class ChemSim():
         except ValueError as e:
             raise ChemSimError("Error in getting best pose") from e
         
+        return complexmol, guestmol
+    
+    def run_opt(self, complexmol, guestmol):
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
         calc = xtbEnergy(self.conf)
@@ -234,7 +228,7 @@ if __name__ == "__main__":
     from xtb_opt import xtbEnergy
     
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
-    os.environ["OMP_NUM_THREADS"] = "4"
+    os.environ["OMP_NUM_THREADS"] = "16"
 
     parser = argparse.ArgumentParser(
         description="",
@@ -287,23 +281,30 @@ if __name__ == "__main__":
 
                 molsout = []
                 guestmolsout = []
-                for i in confs:
-                    molout, guestmolout = simulator.run(i)
 
-                    molsout.append(molout)
-                    guestmolsout.append(guestmolout)
+                molsoutdock = []
+                guestmolsoutdock = []
+                for i in confs:
+                    confmoldock, confguestmoldock = simulator.run_dock(i)
+                    confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
+
+                    molsoutdock.append(confmoldock)
+                    guestmolsoutdock.append(confguestmoldock)
+
+                    molsout.append(confmolout)
+                    guestmolsout.append(confguestmolout)
 
                 # Identify the best binding energy from crude optimisation
                 bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
                 print(bind_ens)
                 best_idx = np.argmin(bind_ens)
                 print([best_idx].GetDoubleProp("en"))
-                molout, guestmolout = molsout[best_idx], guestmolsout[best_idx]
+                bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
                 conf["optlevel"] = org_optlevel
                 conf["thermo"] = org_thermo
                 
-            molout, guestmolout = simulator.run(mol)
+            molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
 
@@ -315,7 +316,7 @@ if __name__ == "__main__":
             print(traceback.format_exc())
             return None
         
-    with Parallel(n_jobs=2, prefer="processes", return_as="generator", verbose=51) as parallel:
+    with Parallel(n_jobs=8, prefer="processes", return_as="generator", verbose=51) as parallel:
         for result in parallel(delayed(process_molecule_wrapper)(simulator, smi) for smi in smi_gen):
             if result:
                 simulator.flush(result[0])
