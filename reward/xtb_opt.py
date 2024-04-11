@@ -24,13 +24,19 @@ class xtbEnergy():
             orgdir = os.getcwd()
             os.chdir(d)
             Chem.MolToMolFile(mol, "mol.sdf", kekulize=False)
+
+            # Check whether to add .CHRG file
+            chrg = Chem.GetFormalCharge(mol)
+            if chrg != 0:
+                with open(".CHRG", "w") as fw:
+                    fw.write(chrg)
+                      
             self.xtb_opt("mol.sdf")
 
             try:
                 finalmol = Chem.MolFromMolFile("xtbopt.sdf",removeHs=False,sanitize=False)
             except:
                 os.chdir(orgdir)
-                rmtree(f"{self.outdir}/xtbtmp_{dirId}")
                 raise ValueError
 
             en = self.get_en()

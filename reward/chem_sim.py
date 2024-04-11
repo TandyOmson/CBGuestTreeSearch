@@ -143,25 +143,16 @@ class ChemSim():
 
         return confs_as_mols
 
-    def run_dock(self, mol):
+    def run_dock(self, guestmol):
         """ Runs the chemistry simulator based on the setup for one mol
             The relevant output is the return property mol containing binding energy and complex geoemtry
             All other ouput is handled by the ChemSim class methods
         """
-        # 1. Generate conformers
-        #print("STATUS - generating conformers")
-        try:
-            guestmol = process_smi(mol, self.conf["molgen_n_confs"], self.conf["molgen_rmsd_threshold"])
-        except Exception as e:
-            raise ChemSimError("Error in conformer generation") from e
-        
-        fix_charge(guestmol)
-
         # If the guest is too large, set bad score
         try:
             is_small = is_small_cylinder(guestmol)
         except:
-            # If there is an error in the check, assume it is too large
+            # If there is an error in the check, assume it is small
             is_small = True
 
         # 2. Dock the best conformer
@@ -297,6 +288,9 @@ if __name__ == "__main__":
                     confmoldock, confguestmoldock = simulator.run_dock(mol)
                     confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
                     
+                    confmoldock, confguestmoldock = simulator.run_dock(i)
+                    confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
+
                     molsoutdock.append(confmoldock)
                     guestmolsoutdock.append(confguestmoldock)
 
@@ -304,17 +298,15 @@ if __name__ == "__main__":
                     guestmolsout.append(confguestmolout)
 
                 # Identify the best binding energy from crude optimisation
-                bind_ens = [i.GetDoubleProp("en") for i in molsout]
+                bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
                 print(bind_ens)
                 best_idx = np.argmin(bind_ens)
-                print(molsout[best_idx].GetDoubleProp("en"))
                 bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
                 conf["optlevel"] = org_optlevel
                 conf["thermo"] = org_thermo
                 
             molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
-            print(molout.GetDoubleProp("en"))
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
 

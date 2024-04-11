@@ -1,4 +1,6 @@
 from rdkit import Chem
+import traceback
+import numpy as np
 
 # Methods for reward calculations
 from reward.chem_sim import ChemSim
@@ -25,25 +27,60 @@ class CBDock_reward(Reward):
 
             simulator = ChemSim(conf, hostmol)
             simulator.setup()
+            smi = mol.GetProp("_Smiles")
+
             try:
-                finalmol, guestmol = simulator.run(mol)
+                confs = simulator.get_confs(mol)
+                
+                # Try top conformers (number determined by conf["molgen_n_confs"])
+                # Set optlevel
+                if conf["molgen_n_confs"] > 1:
+                    org_optlevel = conf["optlevel"]
+                    org_thermo = conf["thermo"]
+                    conf["optlevel"] = "loose"
+                    conf["thermo"] = False
+
+                    molsout = []
+                    guestmolsout = []
+                    for i in confs:
+                        molout, guestmolout = simulator.run(i)
+
+                        molsout.append(molout)
+                        guestmolsout.append(guestmolout)
+
+                    # Identify the best binding energy from crude optimisation
+                    bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
+                    print(bind_ens)
+                    best_idx = np.argmin(bind_ens)
+                    print([best_idx].GetDoubleProp("en"))
+                    molout, guestmolout = molsout[best_idx], guestmolsout[best_idx]
+
+                    conf["optlevel"] = org_optlevel
+                    conf["thermo"] = org_thermo
+                
+                molout, guestmolout = simulator.run(mol)
+                molout.SetProp("smiles", smi)
+                guestmolout.SetProp("smiles", smi)
+
+                # Record additional properties from ChemSim (only complex included in reward functions)
+                simulator.flush_csv_no_mol(molout)
+                simulator.flush_csv_no_mol(guestmolout, guest=True)
+
+                return molout
+
             except Exception as e:
-                print("problem with smiles:", Chem.MolToSmiles(mol))
+                print("Problem with smiles: ", smi)
                 print(e)
+                print(traceback.format_exc())
 
                 # Still have to flush to keep SMILES in MCTS results corresponding to ChemSim results
                 nullmol = Chem.MolFromSmiles("C")
                 nullmol.SetDoubleProp("en", 20.0)
-                simulator.flush(nullmol)
-                simulator.flush(nullmol, guest=True)
-
-                return None
+                nullmol.SetProp("smiles", smi)
+                simulator.flush_csv_no_mol(nullmol)
+                simulator.flush_csv_no_mol(nullmol, guest=True)
                 
-            # Record additional properties from ChemSim (only complex included in reward functions)
-            simulator.flush_csv_no_mol(finalmol)
-            simulator.flush_csv_no_mol(guestmol, guest=True)
-
-            return finalmol
+                return None
 
         def sa_scorer(mol):
             """ Calculate synthetic accessibility score
