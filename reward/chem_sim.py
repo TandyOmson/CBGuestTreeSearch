@@ -19,6 +19,8 @@ import numpy as np
 
 import traceback
 
+import time
+
 # Methods for binding calculations
 if __name__ != "__main__":
     from reward.smi2sdf import process_smi
@@ -177,17 +179,40 @@ class ChemSim():
                 raise ChemSimError("Guest too large, vina_large_guest parameter set to False")
         
         # 3 attempts at docking for small molecules
+        # if is_small:
+        #     try:
+        #         complexmols, scores = dock.score_map_comb(guestmol)
+        #     except:
+        #         try:
+        #             complexmols, scores = dock.score_map_vina(guestmol)
+        #         except:
+        #             try:
+        #                 complexmols, scores = dock.vina_dock(guestmol)
+        #             except Exception as e:
+        #                 raise ChemSimError("Error in docking of small guest") from e
+        complexmols = []
         if is_small:
             try:
-                complexmols, scores = dock.score_map_comb(guestmol)
+                start = time.time()
+                complexmols.extend(dock.score_map_comb(guestmol)[0])
+                end = time.time()
+                print("comb", end-start)
             except:
+                pass
+            try:
+                start = time.time()
+                complexmols.extend(dock.vina_dock(guestmol)[0])
+                end = time.time()
+                print("vina", end-start)
+            except:
+                # The "safe" option
                 try:
-                    complexmols, scores = dock.score_map_vina(guestmol)
-                except:
-                    try:
-                        complexmols, scores = dock.vina_dock(guestmol)
-                    except Exception as e:
-                        raise ChemSimError("Error in docking of small guest") from e
+                    start = time.time()
+                    complexmols.extend(dock.score_map_vina(guestmol)[0])
+                    end = time.time()
+                    print("vina_score", end-start)
+                except Exception as e:
+                    raise ChemSimError("Error in docking of small guest") from e
 
         try:
             complexmol = dock.get_best_pose(complexmols, scores)
