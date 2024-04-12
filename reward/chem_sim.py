@@ -285,9 +285,6 @@ if __name__ == "__main__":
                 molsoutdock = []
                 guestmolsoutdock = []
                 for i in confs:
-                    confmoldock, confguestmoldock = simulator.run_dock(mol)
-                    confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
-                    
                     confmoldock, confguestmoldock = simulator.run_dock(i)
                     confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
 
