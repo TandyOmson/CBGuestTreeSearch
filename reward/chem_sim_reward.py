@@ -57,9 +57,7 @@ class CBDock_reward(Reward):
 
                     # Identify the best binding energy from crude optimisation
                     bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
-                    print(bind_ens)
                     best_idx = np.argmin(bind_ens)
-                    print([best_idx].GetDoubleProp("en"))
                     bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
                     conf["optlevel"] = org_optlevel

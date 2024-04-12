@@ -23,7 +23,7 @@ class DockLigand():
         # Non optional variables assigned as class attributes
         self.hostmol = hostmol
 
-    """ VINA METHODS """
+    """ VINA SCORING """
     def score_map_vina(self, mol):
         """ Screens across a set of rotations and translations
         """
@@ -101,51 +101,6 @@ class DockLigand():
 
         return finalcomplex, scores
 
-    def vina_dock(self, mol):
-        """ Docking only using vina
-            Intended for use with too_large molecules
-        """
-        hostmol = self.hostmol
-        exhaustiveness = self.conf["exhaustiveness"]
-        n_poses = self.conf["n_poses"]
-        min_rmsd = self.conf["min_rmsd"]
-        hostpdbqtfile = self.conf["host_pdbqt"]
-
-        preparator = MoleculePreparation(merge_these_atom_types=[])
-        mol_setups = preparator.prepare(mol)
-
-        # Initialize and setup vina optimizer
-        vinaobj = vina.Vina(verbosity=0)
-        vinaobj.set_receptor(hostpdbqtfile)
-        vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
-
-        for setup in mol_setups:
-            pdbqt_string, is_ok, err_msg = PDBQTWriterLegacy.write_string(setup, bad_charge_ok=True)
-
-        if not is_ok:
-            print(err_msg)
-
-        vinaobj.set_ligand_from_string(pdbqt_string)
-
-        _ = vinaobj.optimize()
-        vinaobj.dock(exhaustiveness=exhaustiveness, n_poses=n_poses, min_rmsd=min_rmsd)
-
-        vina_output_str = vinaobj.poses()
-        if vina_output_str == "":
-            raise ValueError("No poses found")
-
-        pdbqt_mol = PDBQTMolecule(vina_output_str, is_dlg=False, skip_typing=True)
-        rdkitmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
-
-        hostmol_confs = Chem.Mol(hostmol)
-        hostmol_confs.RemoveAllConformers()
-        for i in range(rdkitmol[0].GetNumConformers()):
-            hostmol_confs.AddConformer(hostmol.GetConformer(), assignId=True)
-            
-        complex = Chem.CombineMols(hostmol_confs, rdkitmol[0])
-
-        return complex, vinaobj.energies()
-
     """ COMBINED MMFF94 + vina SCORING METHODS """
 
     def score_map_comb(self, mol):
@@ -216,6 +171,55 @@ class DockLigand():
             finalcomplex.AddConformer(complexconfs.GetConformer(i), assignId=True)
         
         return finalcomplex, scores
+    
+    """VINA DOCKING VIA GENERATIVE METHOD"""
+
+    def vina_dock(self, mol):
+        """ Docking only using vina
+            Intended for use with too_large molecules
+        """
+        hostmol = self.hostmol
+        exhaustiveness = self.conf["exhaustiveness"]
+        n_poses = self.conf["n_poses"]
+        min_rmsd = self.conf["min_rmsd"]
+        hostpdbqtfile = self.conf["host_pdbqt"]
+
+        preparator = MoleculePreparation(merge_these_atom_types=[])
+        mol_setups = preparator.prepare(mol)
+
+        # Initialize and setup vina optimizer
+        vinaobj = vina.Vina(verbosity=0)
+        vinaobj.set_receptor(hostpdbqtfile)
+        vinaobj.compute_vina_maps(center=[0.0,0.0,0.0], box_size=[24.0, 24.0, 24.0])
+
+        for setup in mol_setups:
+            pdbqt_string, is_ok, err_msg = PDBQTWriterLegacy.write_string(setup, bad_charge_ok=True)
+
+        if not is_ok:
+            print(err_msg)
+
+        vinaobj.set_ligand_from_string(pdbqt_string)
+
+        _ = vinaobj.optimize()
+        vinaobj.dock(exhaustiveness=exhaustiveness, n_poses=n_poses, min_rmsd=min_rmsd)
+
+        vina_output_str = vinaobj.poses()
+        if vina_output_str == "":
+            raise ValueError("No poses found")
+
+        pdbqt_mol = PDBQTMolecule(vina_output_str, is_dlg=False, skip_typing=True)
+        rdkitmol = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+
+        hostmol_confs = Chem.Mol(hostmol)
+        hostmol_confs.RemoveAllConformers()
+        for i in range(rdkitmol[0].GetNumConformers()):
+            hostmol_confs.AddConformer(hostmol.GetConformer(), assignId=True)
+            
+        complex = Chem.CombineMols(hostmol_confs, rdkitmol[0])
+
+        return complex, vinaobj.energies()
+
+    """HELPER FUNCTIONS FOR DOCKING METHODS"""
     
     def align_mol(self, mol):
         """ Align principal axis of a molecule along the z axis 

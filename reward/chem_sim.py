@@ -15,7 +15,6 @@ import pandas as pd
 import os
 from joblib import Parallel, delayed
 import traceback
-import pickle
 import numpy as np
 
 import traceback
@@ -79,8 +78,12 @@ class ChemSim():
         """ Writes the output of a molecule to the output file
             Properties are written to the propertymol based on the config
         """
-        moldict = {i: float(propertymol.GetProp(i)) if isinstance(propertymol.GetProp(i), float) else propertymol.GetProp(i) 
-                    for i in propertymol.GetPropNames()}
+        moldict = {}
+        for i in propertymol.GetPropNames():
+            try:
+                moldict[i] = float(propertymol.GetProp(i))
+            except:
+                moldict[i] = propertymol.GetProp(i)
             
         # Clear properties in molecule object to save space
         for i in propertymol.GetPropNames():
@@ -103,8 +106,12 @@ class ChemSim():
         """ Writes the output of a molecule to the output file - for additional energies
             Mol structure is NOT saved, as this is in the MCTS .pkl
         """
-        moldict = {i: float(propertymol.GetProp(i)) if isinstance(propertymol.GetProp(i), float) else propertymol.GetProp(i) 
-                       for i in propertymol.GetPropNames()}
+        moldict = {}
+        for i in propertymol.GetPropNames():
+            try:
+                moldict[i] = float(propertymol.GetProp(i))
+            except:
+                moldict[i] = propertymol.GetProp(i)
             
         # Clear properties in molecule object to save space
         for i in propertymol.GetPropNames():
@@ -173,12 +180,15 @@ class ChemSim():
         if is_small:
             try:
                 complexmols, scores = dock.score_map_vina(guestmol)
+                print("Docked via vina scoring")
             except:
                 try:
                     complexmols, scores = dock.score_map_comb(guestmol)
+                    print("Docked via MMFF94 scoring")
                 except:
                     try:
                         complexmols, scores = dock.vina_dock(guestmol)
+                        print("Docked via vina generative")
                     except Exception as e:
                         raise ChemSimError("Error in docking of small guest") from e
 
@@ -206,10 +216,10 @@ class ChemSim():
         if exo:
             optcomplexmol.SetProp("is_exo", "True")
         
-        # Check if the smiles of the guest have changed
-        changed = check_smiles_change(optguestmol, Chem.GetMolFrags(optcomplexmol, asMols=True)[1])
-        if changed:
-            optcomplexmol.SetProp("is_changed", "True")
+        # # Check if the smiles of the guest have changed
+        # changed = check_smiles_change(optguestmol, Chem.GetMolFrags(optcomplexmol, asMols=True)[1])
+        # if changed:
+        #     optcomplexmol.SetProp("is_changed", "True")
         
         bind_en = complex_en - guest_en - self.host_en
         optcomplexmol.SetDoubleProp("en", bind_en)
@@ -285,6 +295,7 @@ if __name__ == "__main__":
                 molsoutdock = []
                 guestmolsoutdock = []
                 for i in confs:
+                    print(f"Docking\t{smi}")
                     confmoldock, confguestmoldock = simulator.run_dock(i)
                     confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
 
@@ -296,8 +307,8 @@ if __name__ == "__main__":
 
                 # Identify the best binding energy from crude optimisation
                 bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
-                print(bind_ens)
                 best_idx = np.argmin(bind_ens)
+                print(f"{best_idx}\t{len(molsout)}\t{smi}")
                 bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
                 conf["optlevel"] = org_optlevel
@@ -307,7 +318,7 @@ if __name__ == "__main__":
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
 
-            return molout, guestmolout         
+            return molout, guestmolout
 
         except Exception as e:
             print("Problem with smiles: ", smi)
