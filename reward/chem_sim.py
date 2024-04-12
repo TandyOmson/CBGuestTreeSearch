@@ -186,9 +186,9 @@ class ChemSim():
             complexmol = dock.get_best_pose(complexmols, scores)
         except ValueError as e:
             raise ChemSimError("Error in getting best pose") from e
-        
+
         return complexmol, guestmol
-    
+
     def run_opt(self, complexmol, guestmol):
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
@@ -298,7 +298,6 @@ if __name__ == "__main__":
                 bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
                 print(bind_ens)
                 best_idx = np.argmin(bind_ens)
-                print([best_idx].GetDoubleProp("en"))
                 bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
                 conf["optlevel"] = org_optlevel
