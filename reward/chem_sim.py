@@ -181,7 +181,9 @@ class ChemSim():
             try:
                 complexmols, scores = dock.score_map_vina(guestmol)
                 print("Docked via vina scoring")
-            except:
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
                 try:
                     complexmols, scores = dock.score_map_comb(guestmol)
                     print("Docked via MMFF94 scoring")

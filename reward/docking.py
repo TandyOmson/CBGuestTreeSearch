@@ -308,8 +308,7 @@ class DockLigand():
         vinaobj.set_ligand_from_string(pdbqt_string)
         opt_ens = vinaobj.optimize()
 
-        with tempfile.NamedTemporaryFile(dir=self.conf["output_dir"], delete_on_close=False) as tf:
-            tf.close()
+        with tempfile.NamedTemporaryFile(dir=self.conf["output_dir"]) as tf:
             vinaobj.write_pose(tf.name, overwrite=True, remarks="")
             pdbqt_mol = PDBQTMolecule.from_file(tf.name, skip_typing=True)
 
