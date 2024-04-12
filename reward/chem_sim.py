@@ -178,61 +178,20 @@ class ChemSim():
             else:
                 raise ChemSimError("Guest too large, vina_large_guest parameter set to False")
         
-        # 3 attempts at docking for small molecules
-        # if is_small:
-        #     try:
-        #         complexmols, scores = dock.score_map_comb(guestmol)
-        #     except:
-        #         try:
-        #             complexmols, scores = dock.score_map_vina(guestmol)
-        #         except:
-        #             try:
-        #                 complexmols, scores = dock.vina_dock(guestmol)
-        #             except Exception as e:
-        #                 raise ChemSimError("Error in docking of small guest") from e
-        complexmols = []
-        scores = []
-        docking_failures = 0
         if is_small:
             try:
-                start = time.time()
-                complexmol_dock, score = dock.score_map_comb(guestmol)
-                complexmols.append(complexmol_dock)
-                scores.extend(score)
-                end = time.time()
-                print("comb", end-start)
+                complexmols, scores = dock.score_map_comb(guestmol)
             except:
-                docking_failures += 1
-            try:
-                start = time.time()
-                complexmol_dock, score = dock.vina_dock(guestmol)
-                complexmols.append(complexmol_dock)
-                scores.extend(score)
-                end = time.time()
-                print("vina", end-start)
-            except:
-                docking_failures += 1
-            try:
-                start = time.time()
-                complexmol_dock, score = dock.score_map_vina(guestmol)
-                complexmols.append(complexmol_dock)
-                scores.extend(score)
-                end = time.time()
-                print("vina_score", end-start)
-            except:
-                docking_failures += 1
-
-            if docking_failures == 3:
-                raise ValueError("All docking methods failed")
-
-        complexmol_confs = Chem.Mol(complexmols[0])
-        complexmol_confs.RemoveAllConformers()       
-        for i in complexmols:
-            for c in i.GetConformers():
-                complexmol_confs.AddConformer(c, assignId=True)
+                try:
+                    complexmols, scores = dock.score_map_vina(guestmol)
+                except:
+                    try:
+                        complexmols, scores = dock.vina_dock(guestmol)
+                    except Exception as e:
+                        raise ChemSimError("Error in docking of small guest") from e
 
         try:
-            complexmol = dock.get_best_pose(complexmol_confs, scores)
+            complexmol = dock.get_best_pose(complexmols, scores)
         except ValueError as e:
             raise ChemSimError("Error in getting best pose") from e
 
