@@ -42,23 +42,30 @@ class CBDock_reward(Reward):
 
                     molsout = []
                     guestmolsout = []
-                    for i in confs:
-                        molout, guestmolout = simulator.run(i)
 
-                        molsout.append(molout)
-                        guestmolsout.append(guestmolout)
+                    molsoutdock = []
+                    guestmolsoutdock = []
+                    for i in confs:
+                        confmoldock, confguestmoldock = simulator.run_dock(i)
+                        confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
+
+                        molsoutdock.append(confmoldock)
+                        guestmolsoutdock.append(confguestmoldock)
+
+                        molsout.append(confmolout)
+                        guestmolsout.append(confguestmolout)
 
                     # Identify the best binding energy from crude optimisation
                     bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
                     print(bind_ens)
                     best_idx = np.argmin(bind_ens)
                     print([best_idx].GetDoubleProp("en"))
-                    molout, guestmolout = molsout[best_idx], guestmolsout[best_idx]
+                    bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
                     conf["optlevel"] = org_optlevel
                     conf["thermo"] = org_thermo
                 
-                molout, guestmolout = simulator.run(mol)
+                molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
                 molout.SetProp("smiles", smi)
                 guestmolout.SetProp("smiles", smi)
 
