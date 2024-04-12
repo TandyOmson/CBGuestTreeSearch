@@ -191,31 +191,44 @@ class ChemSim():
         #             except Exception as e:
         #                 raise ChemSimError("Error in docking of small guest") from e
         complexmols = []
+        scores = []
         if is_small:
             try:
                 start = time.time()
-                complexmols.extend(dock.score_map_comb(guestmol)[0])
+                complexmol_dock, score = dock.score_map_comb(guestmol)
+                complexmols.append(complexmol_dock)
+                scores.extend(score)
                 end = time.time()
                 print("comb", end-start)
             except:
                 pass
             try:
                 start = time.time()
-                complexmols.extend(dock.vina_dock(guestmol)[0])
+                complexmol_dock, score = dock.vina_dock(guestmol)
+                complexmols.append(complexmol_dock)
+                scores.extend(score)
                 end = time.time()
                 print("vina", end-start)
             except:
                 # The "safe" option
                 try:
                     start = time.time()
-                    complexmols.extend(dock.score_map_vina(guestmol)[0])
+                    complexmol_dock, score = dock.score_map_vina(guestmol)
+                    complexmols.append(complexmol_dock)
+                    scores.extend(score)
                     end = time.time()
                     print("vina_score", end-start)
                 except Exception as e:
                     raise ChemSimError("Error in docking of small guest") from e
 
+        complexmol_confs = Chem.Mol(complexmols[0])
+        complexmol_confs.RemoveAllConformers()       
+        for i in complexmols:
+            for c in i.GetConformers():
+                complexmol_confs.AddConformer(c, assignId=True)
+
         try:
-            complexmol = dock.get_best_pose(complexmols, scores)
+            complexmol = dock.get_best_pose(complexmol_confs, scores)
         except ValueError as e:
             raise ChemSimError("Error in getting best pose") from e
 
