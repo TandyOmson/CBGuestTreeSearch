@@ -192,6 +192,7 @@ class ChemSim():
         #                 raise ChemSimError("Error in docking of small guest") from e
         complexmols = []
         scores = []
+        docking_failures = 0
         if is_small:
             try:
                 start = time.time()
@@ -201,7 +202,7 @@ class ChemSim():
                 end = time.time()
                 print("comb", end-start)
             except:
-                pass
+                docking_failures += 1
             try:
                 start = time.time()
                 complexmol_dock, score = dock.vina_dock(guestmol)
@@ -210,16 +211,19 @@ class ChemSim():
                 end = time.time()
                 print("vina", end-start)
             except:
-                # The "safe" option
-                try:
-                    start = time.time()
-                    complexmol_dock, score = dock.score_map_vina(guestmol)
-                    complexmols.append(complexmol_dock)
-                    scores.extend(score)
-                    end = time.time()
-                    print("vina_score", end-start)
-                except Exception as e:
-                    raise ChemSimError("Error in docking of small guest") from e
+                docking_failures += 1
+            try:
+                start = time.time()
+                complexmol_dock, score = dock.score_map_vina(guestmol)
+                complexmols.append(complexmol_dock)
+                scores.extend(score)
+                end = time.time()
+                print("vina_score", end-start)
+            except:
+                docking_failures += 1
+
+            if docking_failures == 3:
+                raise ValueError("All docking methods failed")
 
         complexmol_confs = Chem.Mol(complexmols[0])
         complexmol_confs.RemoveAllConformers()       
