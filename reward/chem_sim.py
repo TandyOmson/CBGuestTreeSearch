@@ -179,18 +179,13 @@ class ChemSim():
         # 3 attempts at docking for small molecules
         if is_small:
             try:
-                complexmols, scores = dock.score_map_vina(guestmol)
-                print("Docked via vina scoring")
-            except Exception as e:
-                print(e)
-                print(traceback.format_exc())
+                complexmols, scores = dock.score_map_comb(guestmol)
+            except:
                 try:
-                    complexmols, scores = dock.score_map_comb(guestmol)
-                    print("Docked via MMFF94 scoring")
+                    complexmols, scores = dock.score_map_vina(guestmol)
                 except:
                     try:
                         complexmols, scores = dock.vina_dock(guestmol)
-                        print("Docked via vina generative")
                     except Exception as e:
                         raise ChemSimError("Error in docking of small guest") from e
 
@@ -297,7 +292,6 @@ if __name__ == "__main__":
                 molsoutdock = []
                 guestmolsoutdock = []
                 for i in confs:
-                    print(f"Docking\t{smi}")
                     confmoldock, confguestmoldock = simulator.run_dock(i)
                     confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
 
@@ -310,7 +304,6 @@ if __name__ == "__main__":
                 # Identify the best binding energy from crude optimisation
                 bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
                 best_idx = np.argmin(bind_ens)
-                print(f"{best_idx}\t{len(molsout)}\t{smi}")
                 bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
                 conf["optlevel"] = org_optlevel
