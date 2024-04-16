@@ -14,6 +14,7 @@ from rdkit.Chem import rdMolTransforms
 from rdkit.Chem import PropertyMol
 from rdkit.Chem import rdDetermineBonds
 from scipy.spatial import Delaunay
+import math
 
 import subprocess as sp
 import os
@@ -136,6 +137,55 @@ def check_smiles_change(beforemol, aftermol):
         is_changed = True
 
     return is_changed
+
+def covalent_CB(mol):
+    covalent_CB = False
+
+    frags = Chem.GetMolFrags(mol, asMols=True)
+
+    # Check if any atom in the guest is within 1.4 angstroms of any atom in the host
+    for count1, positions in enumerate(frags[1].GetConformer().GetPositions()):
+        for count2, host_positions in enumerate(frags[0].GetConformer().GetPositions()):
+            if np.linalg.norm(positions - host_positions) < 1.5:
+                covalent_CB = True
+                return covalent_CB
+
+    return covalent_CB
+
+def get_incorrect_bond_angle(mol):
+    """ Takes a mol and returns whether there are any tight angles between any two bonds
+    """
+    mol = Chem.GetMolFrags(mol, asMols=True)[-1]
+
+    incorrect_angle = False
+    mol = Chem.RemoveHs(mol)
+    for atom in mol.GetAtoms():
+        if atom.GetDegree() > 1:
+            # Run through all the permuatation of the other atom indices of the bonds associated with this atom
+            atom_bonds = []
+            for bond in atom.GetBonds():
+                atom_bonds.append(bond.GetOtherAtomIdx(atom.GetIdx()))
+            for i in atom_bonds:
+                for j in atom_bonds:
+                        if i != j:
+                            if rdMolTransforms.GetAngleDeg(mol.GetConformer(), i, atom.GetIdx(), j) < 30.0:
+                                incorrect_angle = True
+                                return incorrect_angle
+
+    return incorrect_angle
+
+def get_incorrect_bond_length(mol):
+    mol = Chem.GetMolFrags(mol, asMols=True)[-1]
+
+    wrong_bond_length = False
+    for bond in mol.GetBonds():
+        bond_length = math.dist(mol.GetConformer().GetAtomPosition(bond.GetBeginAtom().GetIdx()),
+                                mol.GetConformer().GetAtomPosition(bond.GetEndAtom().GetIdx()))
+        if bond_length > 1.6:
+            wrong_bond_length = True
+            return wrong_bond_length
+
+    return wrong_bond_length
 
 def get_property_mol(mol):
     """ Helper function: for regular RDMol objects, properties are deleted when the molecule is modified or pickled.

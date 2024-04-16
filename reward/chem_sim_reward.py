@@ -67,6 +67,19 @@ class CBDock_reward(Reward):
                 molout.SetProp("smiles", smi)
                 guestmolout.SetProp("smiles", smi)
 
+                # If post filters were triggered, set a bad score
+                if molout.HasProp("isExo") == 1:
+                    molout.SetDoubleProp("en", 25.0)
+
+                if molout.HasProp("covalent_CB") == 1:
+                    molout.SetDoubleProp("en", 25.0)
+
+                if molout.HasProp("bad_angle") == 1:
+                    molout.SetDoubleProp("en", 25.0)
+
+                if molout.HasProp("bad_length") == 1:
+                    molout.SetDoubleProp("en", 25.0)
+
                 # Record additional properties from ChemSim (only complex included in reward functions)
                 simulator.flush_csv_no_mol(molout)
                 simulator.flush_csv_no_mol(guestmolout, guest=True)
@@ -80,7 +93,7 @@ class CBDock_reward(Reward):
 
                 # Still have to flush to keep SMILES in MCTS results corresponding to ChemSim results
                 nullmol = Chem.MolFromSmiles("C")
-                nullmol.SetDoubleProp("en", 20.0)
+                nullmol.SetDoubleProp("en", 25.0)
                 nullmol.SetProp("smiles", smi)
                 simulator.flush_csv_no_mol(nullmol)
                 simulator.flush_csv_no_mol(nullmol, guest=True)
@@ -100,7 +113,7 @@ class CBDock_reward(Reward):
         """ Must return a float based on results of objective functions (values) 
         """
         if values[0] is None:
-            return -1.0
+            binding_en = 25.0
 
         binding_en = float(values[0].GetProp("en"))
         #sa_score = values[1]

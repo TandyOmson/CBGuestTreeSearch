@@ -24,7 +24,7 @@ import time
 # Methods for binding calculations
 if __name__ != "__main__":
     from reward.smi2sdf import process_smi
-    from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_property_mol
+    from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
     from reward.docking import DockLigand
     from reward.xtb_opt import xtbEnergy
 
@@ -209,10 +209,24 @@ class ChemSim():
         except Exception as e:
             raise ChemSimError("Error in xTB optimisation") from e
         
+        # POST FILTERS (sets bad score in MCTS, sets flags in ChemSim)
+        
         # If the result of xTB optimisation is exo, set bad score
         exo = is_exo(optcomplexmol, self.hostmol, self.conf)
         if exo:
             optcomplexmol.SetProp("is_exo", "True")
+
+        covalent_CB = covalent_CB(optcomplexmol)
+        if covalent_CB:
+            optcomplexmol.SetProp("covalent_CB", "True")
+
+        bad_angle = get_incorrect_bond_angle(optcomplexmol)
+        if bad_angle:
+            optcomplexmol.SetProp("bad_angle", "True")
+
+        bad_length = get_incorrect_bond_length(optcomplexmol)
+        if bad_length:
+            optcomplexmol.SetProp("bad_length", "True")
         
         # # Check if the smiles of the guest have changed
         # changed = check_smiles_change(optguestmol, Chem.GetMolFrags(optcomplexmol, asMols=True)[1])
