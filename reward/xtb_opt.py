@@ -29,7 +29,7 @@ class xtbEnergy():
             chrg = Chem.GetFormalCharge(mol)
             if chrg != 0:
                 with open(".CHRG", "w") as fw:
-                    fw.write(chrg)
+                    fw.write(str(chrg))
                       
             self.xtb_opt("mol.sdf")
 

@@ -1,15 +1,41 @@
-# Basic setting
+output_dir: result/testing
+
+# Docking Settings
+host_pdbqt: reward/data/host_aligned.pdbqt
+host_sdf: reward/data/host_aligned.sdf
+host_en: -157089.5126460131
+molgen_n_confs: 5
+molgen_rmsd_threshold: 0.35
+vina_num_rotations: 5
+vina_num_translations: 5
+centroid_diff_threshold: 4
+cavity_atoms_threshold: 6
+
+# Required settings if using Vina docking for large molecules
+vina_large_guest: True
+exhaustiveness: 32
+n_poses: 5
+min_rmsd: 3.0
+
+# Chemistry Simulator Settings
+thermo: True
+solvent: True
+optlevel: normal
+additional_ens: True
+partial_charges: False
+
+
+# REDUNDANT IN CHEMSIM
 c_val: 0.75
 # threshold_type: [time, generation_num]
 threshold_type: generation_num
-hours: 72.0
-generation_num: 15000
-output_dir: result/stress_test
+hours: 0.5
+generation_num: 1000
 use_selfies: False
 model_setting:
-  model_json: model/8992HCs/model.tf25.json
-  model_weight: model/8992HCs/model.tf25.best.ckpt.h5
-token: model/8992HCs/tokens.pkl
+  model_json: model/220_ChEMBL_SF/model_sf.tf25.json
+  model_weight: model/220_ChEMBL_SF/model_sf.tf25.best.ckpt.h5
+token: model/220_ChEMBL_SF/tokens_sf.pkl
 reward_setting:
   reward_module: reward.chem_sim_reward
   reward_class: CBDock_reward
@@ -58,34 +84,10 @@ pains_filter:
   class: PainsFilter
   type: [pains_a]
 include_filter_result_in_reward: False
-use_triplebond_filter: True
+use_triplebond_filter: False
 triplebond_filter:
   module: filter.triplebond_filter
   class: TripleBondFilter
-
-# Docking Settings
-host_pdbqt: reward/data/host_aligned.pdbqt
-host_sdf: reward/data/host_aligned.sdf
-host_en: -157089.5126460131
-molgen_n_confs: 1
-molgen_rmsd_threshold: 0.35
-vina_num_rotations: 5
-vina_num_translations: 5
-centroid_diff_threshold: 4
-cavity_atoms_threshold: 6
-
-# Required settings if using Vina docking for large molecules
-vina_large_guest: True
-exhaustiveness: 32
-n_poses: 5
-min_rmsd: 3.0
-
-# Chemistry Simulator Settings
-thermo: True
-solvent: True
-optlevel: normal
-additional_ens: True
-partial_charges: False
 
 # Parrallelisation strategy
 leaf_parallel: True
