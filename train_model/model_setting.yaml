@@ -1,6 +1,7 @@
 dataset: ../data/250k_rndm_zinc_drugs_clean.smi
 output_model_dir: ../model/user_trained
 output_token: ../model/user_trained/tokens.pkl
+use_selfies: True
 
 dropout_rate: 0.3
 rec_dropout_rate: 0

@@ -1,4 +1,4 @@
-dataset: ./16k_zinc_small.smi
+OBdataset: ./16k_zinc_small.smi
 output_model_dir: ./model
 output_token: ./model/tokens.pkl
 use_selfies: False
