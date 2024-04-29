@@ -118,8 +118,6 @@ class ChemSim():
         # Clear properties in molecule object to save space
         for i in propertymol.GetPropNames():
             propertymol.ClearProp(i)
-        # Retain molecule structure
-        moldict["mol"] = propertymol
         
         if guest:
             num = len(self.guestdf) + 1
@@ -210,14 +208,15 @@ class ChemSim():
             raise ChemSimError("Error in xTB optimisation") from e
         
         # POST FILTERS (sets bad score in MCTS, sets flags in ChemSim)
+        # CURRENTLY ONLY APPLY TO HCs DIFFERENT POST FITLERS NEEDED FOR OTHER TYPES OF MOLECULES
         
         # If the result of xTB optimisation is exo, set bad score
         exo = is_exo(optcomplexmol, self.hostmol, self.conf)
         if exo:
             optcomplexmol.SetProp("is_exo", "True")
 
-        covalent_CB = covalent_CB(optcomplexmol)
-        if covalent_CB:
+        covalent = covalent_CB(optcomplexmol)
+        if covalent:
             optcomplexmol.SetProp("covalent_CB", "True")
 
         bad_angle = get_incorrect_bond_angle(optcomplexmol)

@@ -179,7 +179,7 @@ def get_incorrect_bond_length(mol):
 
     wrong_bond_length = False
     for bond in mol.GetBonds():
-        bond_length = math.dist(mol.GetConformer().GetAtomPosition(bond.GetBeginAtom().GetIdx()),
+        bond_length = np.linalg.norm(mol.GetConformer().GetAtomPosition(bond.GetBeginAtom().GetIdx()) -
                                 mol.GetConformer().GetAtomPosition(bond.GetEndAtom().GetIdx()))
         if bond_length > 1.6:
             wrong_bond_length = True

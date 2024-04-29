@@ -56,7 +56,7 @@ class CBDock_reward(Reward):
                         guestmolsout.append(confguestmolout)
 
                     # Identify the best binding energy from crude optimisation
-                    bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
+                    bind_ens = [float(i.GetProp("en")) for i in molsout]
                     best_idx = np.argmin(bind_ens)
                     bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
 
@@ -80,11 +80,16 @@ class CBDock_reward(Reward):
                 if molout.HasProp("bad_length") == 1:
                     molout.SetDoubleProp("en", 25.0)
 
+                # Required as flush wipes mol properties
+                en = float(molout.GetProp("en"))
+                binding_mol = Chem.Mol(molout)
+                binding_mol.SetDoubleProp("en", en)
+
                 # Record additional properties from ChemSim (only complex included in reward functions)
                 simulator.flush_csv_no_mol(molout)
                 simulator.flush_csv_no_mol(guestmolout, guest=True)
 
-                return molout
+                return binding_mol
 
             except Exception as e:
                 print("Problem with smiles: ", smi)
@@ -112,10 +117,10 @@ class CBDock_reward(Reward):
     def calc_reward_from_objective_values(values, conf):
         """ Must return a float based on results of objective functions (values) 
         """
-        if values[0] is None:
+        if not values[0]:
             binding_en = 25.0
-
-        binding_en = float(values[0].GetProp("en"))
+        else:
+            binding_en = float(values[0].GetProp("en"))
         #sa_score = values[1]
         print("binding: ", binding_en)
 
