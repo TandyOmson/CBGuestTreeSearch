@@ -16,6 +16,7 @@ import pandas as pd
 import selfies as sf
 
 from chemtsv2.misc.manage_qsub_parallel import run_qsub_parallel
+from reward.chem_sim import ChemSim
 
 
 def calc_execution_time(f):
@@ -215,6 +216,7 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
     
     #calculation rewards of valid molecules
     def _get_objective_values(mol, conf):
+        chemsim_init(conf)
         return [f(mol) for f in reward_calculator.get_objective_functions(conf)]
 
     if conf['leaf_parallel']:
@@ -272,3 +274,29 @@ def sort_sdf_confs(sdf_inp, sdf_out):
         writer.write(suppl[mol_id])
     writer.close()
     return 1
+
+def run_at_start(f):
+    """ Decorator to ensure initialisation is only carried out once
+        Stores a reference to the return object that is returned in subsequent calls without changing its state
+    """
+    def wrapper(*args, **kwargs):
+        if not hasattr(wrapper, 'result') or wrapper.result is None:
+            wrapper.result = f(*args, **kwargs)
+        return wrapper.result
+    return wrapper
+
+@run_at_start
+def chemsim_init(conf):
+    """ Initialises a chemsim object and all the host variables"""
+
+    hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
+
+    confs_per_guest = conf["vina_num_rotations"] * conf["vina_num_translations"] + 1
+    for i in range(confs_per_guest):
+        newhost = Chem.Conformer(hostmol.GetConformer(0))
+        hostmol.AddConformer(newhost, assignId=True)
+
+    simulator = ChemSim(conf, hostmol)
+    simulator.setup()
+    
+    return simulator

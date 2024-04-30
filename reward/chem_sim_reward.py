@@ -8,9 +8,7 @@ from reward.sascorer import calculateScore
 
 # Can inherit from the batchReward abstract class
 from reward.reward import Reward
-
-# On module call, _host_initialised is set to False, then becomes true on first call to binding_mol
-_host_initialised = False
+from chemtsv2.utils import chemsim_init
 
 class CBDock_reward(Reward):
     """ Reward Class in config. A reference to this class from config is passed through the MCTS class to the evaluate_node method in utils 
@@ -22,11 +20,9 @@ class CBDock_reward(Reward):
         def binding_mol(mol):
             """ Calculate values contributing to the reward arising from binding
             """
-            if not _host_initialised:
-                _initialise_host(conf)
-
-            simulator = ChemSim(conf, hostmol)
-            simulator.setup()
+            # This is run only time courtesy of the decorated chemsim_init function
+            simulator = chemsim_init(conf)
+                
             smi = mol.GetProp("_Smiles")
 
             try:
@@ -130,25 +126,6 @@ class CBDock_reward(Reward):
         
         # + sa_score/5.0
         return - score_diff * 0.1 / (1 + abs(score_diff) * 0.1)
-
-def _initialise_host(conf):
-    """ A "pseudo constructor" for the class containing only static methods, will only work these out at the start
-    """
-    global _host_initialised, hostmol, host_pdbqt, host_en
-
-    host_pdbqt = conf["host_pdbqt"]
-    hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
-
-    confs_per_guest = conf["vina_num_rotations"] * conf["vina_num_translations"] + 1
-    for i in range(confs_per_guest):
-        newhost = Chem.Conformer(hostmol.GetConformer(0))
-        hostmol.AddConformer(newhost, assignId=True)
-    
-    # If using multiple properties, turn this into a dictionary
-    host_en = conf["host_en"]
-    print("globvars set")
-    
-    _host_initialised = True
 
 # Test
 if __name__ == "__main__":

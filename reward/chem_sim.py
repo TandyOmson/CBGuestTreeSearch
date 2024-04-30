@@ -48,7 +48,6 @@ class ChemSim():
         self.conf = conf
         # Non optional variables set as class attributes
         self.hostmol = hostmol
-        self.host_en = conf["host_en"]
         self.outdir = conf["output_dir"]
         # SET AS STANDALONE CHEMISTRY SIMULATOR
         self.is_standalone = kwargs.get("standalone", False)
@@ -199,7 +198,7 @@ class ChemSim():
         # if changed:
         #     optcomplexmol.SetProp("is_changed", "True")
         
-        bind_en = complex_en - guest_en - self.host_en
+        bind_en = complex_en - guest_en - self.conf["host_en"]
         optcomplexmol.SetDoubleProp("en", bind_en)
         optguestmol.SetDoubleProp("en", guest_en)
 
@@ -234,18 +233,14 @@ if __name__ == "__main__":
     with open(args.config, 'r') as f:
         conf = yaml.load(f, Loader=yaml.SafeLoader)
 
-    global _host_initialised, hostmol, host_pdbqt, host_en
-
-    host_pdbqt = conf["host_pdbqt"]
     hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
 
     confs_per_guest = conf["vina_num_rotations"] * conf["vina_num_translations"] + 1
     for i in range(confs_per_guest):
         newhost = Chem.Conformer(hostmol.GetConformer(0))
         hostmol.AddConformer(newhost, assignId=True)
-    
-    host_en = conf["host_en"]
-    print("globvars set")
+
+    print("host initialised")
 
     df = pd.read_csv(args.input, sep=" ", names=["smiles"], index_col=False)
     smi_gen = (i for i in df["smiles"])
