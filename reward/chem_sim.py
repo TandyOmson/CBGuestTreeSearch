@@ -64,17 +64,10 @@ class ChemSim():
             except:
                 print("WARNING - output directory already exists")
         
-        # if standalone, make it a pickle (to include structures, else just a csv)
-        if self.is_standalone:
-            self.outfile = os.path.join(self.outdir, "chem_sim.pkl")
-            self.guestfile = os.path.join(self.outdir, "guest_sim.pkl")
-            self.df = pd.DataFrame(columns=self.proplist.append("binding_mol"))
-            self.guestdf = pd.DataFrame(columns=self.proplist.append("binding_mol"))
-        else:
-            self.outfile = os.path.join(self.outdir, "chem_sim.csv")
-            self.guestfile = os.path.join(self.outdir, "guest_sim.csv")
-            self.df = pd.DataFrame(columns=self.proplist)
-            self.guestdf = pd.DataFrame(columns=self.proplist)
+        self.outfile = os.path.join(self.outdir, "chem_sim.pkl")
+        self.guestfile = os.path.join(self.outdir, "guest_sim.pkl")
+        self.df = pd.DataFrame(columns=self.proplist.append("binding_mol"))
+        self.guestdf = pd.DataFrame(columns=self.proplist.append("binding_mol"))
 
     def flush(self, propertymol, guest=False):
         """ Writes the output of a molecule to the output file
@@ -103,32 +96,6 @@ class ChemSim():
             df_mol = pd.DataFrame(moldict, index=[idx])
             self.df = pd.concat([self.df, df_mol], axis=0)
             self.df.to_pickle(self.outfile)
-
-    def flush_csv_no_mol(self, propertymol, guest=False):
-        """ Writes the output of a molecule to the output file - for additional energies
-            Mol structure is NOT saved, as this is in the MCTS .pkl
-        """
-        moldict = {}
-        for i in propertymol.GetPropNames():
-            try:
-                moldict[i] = float(propertymol.GetProp(i))
-            except:
-                moldict[i] = propertymol.GetProp(i)
-            
-        # Clear properties in molecule object to save space
-        for i in propertymol.GetPropNames():
-            propertymol.ClearProp(i)
-        
-        if guest:
-            num = len(self.guestdf) + 1
-            df_mol = pd.DataFrame(moldict, index=[num])
-            self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
-            self.guestdf.to_csv(self.guestfile)
-        else:
-            num = len(self.df) + 1
-            df_mol = pd.DataFrame(moldict, index=[num])
-            self.df = pd.concat([self.df, df_mol], axis=0)
-            self.df.to_csv(self.outfile)
 
     def get_confs(self, mol):
         """ Generates conformers of a molecule

@@ -86,8 +86,8 @@ class CBDock_reward(Reward):
                 binding_mol.SetDoubleProp("en", en)
 
                 # Record additional properties from ChemSim (only complex included in reward functions)
-                simulator.flush_csv_no_mol(molout)
-                simulator.flush_csv_no_mol(guestmolout, guest=True)
+                simulator.flush(molout)
+                simulator.flush(guestmolout, guest=True)
 
                 return binding_mol
 
@@ -100,8 +100,8 @@ class CBDock_reward(Reward):
                 nullmol = Chem.MolFromSmiles("C")
                 nullmol.SetDoubleProp("en", 25.0)
                 nullmol.SetProp("smiles", smi)
-                simulator.flush_csv_no_mol(nullmol)
-                simulator.flush_csv_no_mol(nullmol, guest=True)
+                simulator.flushl(nullmol)
+                simulator.flush(nullmol, guest=True)
                 
                 return None
 

@@ -91,7 +91,6 @@ class MCTS:
             self.obj_column_names = [f.__name__ for f in self.reward_calculator.get_batch_objective_functions()]
         else:
             self.obj_column_names = [f.__name__ for f in self.reward_calculator.get_objective_functions(self.conf)]
-        self.output_pkl_path = os.path.join(conf['output_dir'], f"result_C{conf['c_val']}.pkl")
         self.output_csv_path = os.path.join(conf['output_dir'], f"result_C{conf['c_val']}.csv")
         if os.path.exists(self.output_csv_path) and not conf['restart']:
             sys.exit(f"[ERROR] {self.output_csv_path} already exists. Please specify a different file name.")
@@ -127,13 +126,8 @@ class MCTS:
         df = pd.concat([df, df_obj], axis=1)
         if os.path.exists(self.output_csv_path):
             df.to_csv(self.output_csv_path, mode='a', index=False, header=False)
-            # Appending to a pickle requires some effort.
-            df_old = pd.read_pickle(self.output_pkl_path)
-            df = pd.concat([df_old, df], axis=0)
-            df.to_pickle(self.output_pkl_path)
         else:
             df.to_csv(self.output_csv_path, mode='w', index=False)
-            df.to_pickle(self.output_pkl_path)
         self.logger.info(f"save results at {self.output_csv_path}")
 
         self.generated_id_list.clear()
