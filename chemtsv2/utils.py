@@ -166,9 +166,9 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
     #check valid smiles
     for i in range(len(new_compound)):
         mol = Chem.MolFromSmiles(new_compound[i])
-        mol.SetProp("_Smiles", str(i))
         if mol is None:
             continue
+
         _mol = copy.deepcopy(mol)  # Chem.SanitizeMol() modifies `mol` in place
         
         if Chem.SanitizeMol(_mol, catchErrors=True).name != 'SANITIZE_NONE':
@@ -217,6 +217,7 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
     #calculation rewards of valid molecules
     def _get_objective_values(mol, conf):
         chemsim_init(conf)
+        mol.SetProp("_Smiles", str(new_compound[i]))
         return [f(mol) for f in reward_calculator.get_objective_functions(conf)]
 
     if conf['leaf_parallel']:

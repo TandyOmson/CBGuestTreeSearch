@@ -24,6 +24,7 @@ class CBDock_reward(Reward):
             simulator = chemsim_init(conf)
                 
             smi = mol.GetProp("_Smiles")
+            print("running", smi)
 
             try:
                 confs = simulator.get_confs(mol)
@@ -58,6 +59,9 @@ class CBDock_reward(Reward):
 
                     conf["optlevel"] = org_optlevel
                     conf["thermo"] = org_thermo
+
+                else:
+                    bestconf, bestguestconf = simulator.run_dock(confs[0])
                 
                 molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
                 molout.SetProp("smiles", smi)
@@ -92,12 +96,8 @@ class CBDock_reward(Reward):
                 print(e)
                 print(traceback.format_exc())
 
-                # Still have to flush to keep SMILES in MCTS results corresponding to ChemSim results
-                nullmol = Chem.MolFromSmiles("C")
-                nullmol.SetDoubleProp("en", 25.0)
-                nullmol.SetProp("smiles", smi)
-                simulator.flushl(nullmol)
-                simulator.flush(nullmol, guest=True)
+                with open(f"{conf["output_dir"]}/failed.smi", "a") as fa:
+                    fa.write(f"{smi}\n")
                 
                 return None
 
