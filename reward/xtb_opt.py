@@ -20,7 +20,7 @@ class xtbEnergy():
     def get_opt(self, mol):
         """ Calls methods to optimise a mol and retrieve energy
         """
-        with tempfile.TemporaryDirectory(dir=os.abspath(f"{self.outdir}")) as d:
+        with tempfile.TemporaryDirectory(dir=f"{self.outdir}") as d:
             orgdir = os.getcwd()
             os.chdir(d)
             Chem.MolToMolFile(mol, "mol.sdf", kekulize=False)
@@ -46,35 +46,6 @@ class xtbEnergy():
                 self.get_additional_ens(finalmol)
             os.chdir(orgdir)
 
-        """
-        orgdir = os.getcwd()
-        # Get current temp dirs
-        curr = glob(f"{self.outdir}/xtbtmp_*")
-        # Make new temp dir
-        dirId = len(curr)+1
-        os.mkdir(f"{self.outdir}/xtbtmp_{dirId}")
-        os.chdir(f"{self.outdir}/xtbtmp_{dirId}")
-
-        Chem.MolToMolFile(mol,"mol.sdf",kekulize=False)
-        self.xtb_opt("mol.sdf")
-        try:
-            finalmol = Chem.MolFromMolFile("xtbopt.sdf",removeHs=False,sanitize=False)
-        except:
-            os.chdir(orgdir)
-            rmtree(f"{self.outdir}/xtbtmp_{dirId}")
-            raise ValueError
-
-        en = self.get_en()
-
-        # Additional outputs are assigned as class attributes
-        if self.conf["additional_ens"]:
-            self.get_additional_ens(finalmol)
-
-        # if self.conf["partial_charges"]:
-
-        os.chdir(orgdir)
-        rmtree(f"{self.outdir}/xtbtmp_{dirId}")
-        """
         return finalmol, en
 
     def xtb_opt(self, filename):

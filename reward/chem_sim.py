@@ -69,8 +69,9 @@ class ChemSim():
         self.guestdf = pd.DataFrame(columns=self.proplist.append("binding_mol"))
 
         # Set the paths of the host_pdbqt and host_sdf to absolute paths inside the scope of the object
-        conf["host_pdbqt"] = os.abspath(conf["host_pdbqt"]) 
-        conf["host_sdf"] = os.abspath(conf["host_sdf"])
+        self.conf["host_pdbqt"] = os.path.realpath(conf["host_pdbqt"])
+        self.conf["host_sdf"] = os.path.realpath(conf["host_sdf"])
+        self.conf["output_dir"] = os.path.realpath(conf["output_dir"])
 
     def flush(self, propertymol, guest=False):
         """ Writes the output of a molecule to the output file
