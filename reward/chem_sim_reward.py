@@ -96,7 +96,7 @@ class CBDock_reward(Reward):
                 print(e)
                 print(traceback.format_exc())
 
-                with open(f"{conf["output_dir"]}/failed.smi", "a") as fa:
+                with open(f"{conf['output_dir']}/failed.smi", "a") as fa:
                     fa.write(f"{smi}\n")
                 
                 return None
