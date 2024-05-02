@@ -20,7 +20,7 @@ class xtbEnergy():
     def get_opt(self, mol):
         """ Calls methods to optimise a mol and retrieve energy
         """
-        with tempfile.TemporaryDirectory(dir=f"{self.outdir}") as d:
+        with tempfile.TemporaryDirectory(dir=os.abspath(f"{self.outdir}")) as d:
             orgdir = os.getcwd()
             os.chdir(d)
             Chem.MolToMolFile(mol, "mol.sdf", kekulize=False)
