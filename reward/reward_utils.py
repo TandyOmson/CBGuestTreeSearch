@@ -139,7 +139,7 @@ def check_smiles_change(beforemol, aftermol):
     return is_changed
 
 def covalent_CB(mol):
-    covalent_CB = False
+    covalent = False
 
     frags = Chem.GetMolFrags(mol, asMols=True)
 
@@ -147,10 +147,10 @@ def covalent_CB(mol):
     for count1, positions in enumerate(frags[1].GetConformer().GetPositions()):
         for count2, host_positions in enumerate(frags[0].GetConformer().GetPositions()):
             if np.linalg.norm(positions - host_positions) < 1.5:
-                covalent_CB = True
-                return covalent_CB
+                covalent = True
+                return covalent
 
-    return covalent_CB
+    return covalent
 
 def get_incorrect_bond_angle(mol):
     """ Takes a mol and returns whether there are any tight angles between any two bonds
