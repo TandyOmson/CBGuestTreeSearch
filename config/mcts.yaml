@@ -8,12 +8,14 @@ generation_num: 10
 use_selfies: False
 
 model_setting: 
-  model_json: model/DdefaultModels/250k_zinc_default/model.tf25.json
-  model_weight: model/DdefaultModels/250k_zinc_default/model.tf25.best.ckpt.h5
-  token: model/DdefaultModels/250k_zinc_default/tokens.pkl
+  model_json: model/250k_zinc/model.tf25.json
+  model_weight: model/250k_zinc/model.tf25.best.ckpt.h5
+token: model/250k_zinc/tokens.pkl
 reward_setting:
   reward_module: reward.chem_sim_reward
   reward_class: CBDock_reward
+
+random_seed: 0
 
 # Advanced setting
 expansion_threshold: 0.995

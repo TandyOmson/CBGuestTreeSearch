@@ -24,7 +24,6 @@ optlevel: normal
 additional_ens: True
 partial_charges: False
 
-
 # REDUNDANT IN CHEMSIM
 c_val: 0.75
 # threshold_type: [time, generation_num]

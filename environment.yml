@@ -1,4 +1,3 @@
-OBname: chemts
 channels:
   - bioconda
   - decimer
