@@ -12,7 +12,6 @@ isExo: determines if the guest is exohedrally bound
 from rdkit import Chem
 from rdkit.Chem import rdMolTransforms
 from rdkit.Chem import PropertyMol
-from rdkit.Chem import rdDetermineBonds
 from scipy.spatial import Delaunay
 import math
 
@@ -111,32 +110,6 @@ def is_exo(complexmol, hostmol, conf, confId=-1):
         isExo = True
 
     return isExo
-
-def check_smiles_change(beforemol, aftermol):
-    """ Post docking and optimisation, checks if the optimised guest is the same as the original guest
-        i.e. no bond changes. If this is the case, the molecule should be flagged and get a bad score.
-    """
-    # Get the smiles of the original guest
-    before_smiles = Chem.MolToSmiles(beforemol, canonical=True)
-
-    # Get the smiles of the optimised guest
-    conn_mol = Chem.Mol(aftermol)
-    # Simple determination of connectivity based on bond lengths and chemistry rules
-    # This should pick up chemical changes in the molecule
-    rdDetermineBonds.DetermineConnectivity(conn_mol)
-    try:
-        rdDetermineBonds.DetermineBondOrders(conn_mol)
-        after_smiles = Chem.MolToSmiles(conn_mol, canonical=True)
-    except:
-        is_changed = True
-        return is_changed
-
-    # Check if the smiles are the same
-    is_changed = False
-    if before_smiles != after_smiles:
-        is_changed = True
-
-    return is_changed
 
 def covalent_CB(mol):
     covalent = False

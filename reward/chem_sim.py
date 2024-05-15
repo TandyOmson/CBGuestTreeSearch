@@ -24,7 +24,7 @@ import time
 # Methods for binding calculations
 if __name__ != "__main__":
     from reward.smi2sdf import process_smi
-    from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
+    from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
     from reward.docking import DockLigand
     from reward.xtb_opt import xtbEnergy
 
@@ -197,12 +197,7 @@ class ChemSim():
         bad_length = get_incorrect_bond_length(optcomplexmol)
         if bad_length:
             optcomplexmol.SetProp("bad_length", "True")
-        
-        # # Check if the smiles of the guest have changed
-        # changed = check_smiles_change(optguestmol, Chem.GetMolFrags(optcomplexmol, asMols=True)[1])
-        # if changed:
-        #     optcomplexmol.SetProp("is_changed", "True")
-        
+                
         bind_en = complex_en - guest_en - self.conf["host_en"]
         optcomplexmol.SetDoubleProp("en", bind_en)
         optguestmol.SetDoubleProp("en", guest_en)
@@ -216,7 +211,7 @@ if __name__ == "__main__":
 
     from smi2sdf import process_smi
     from docking import DockLigand
-    from reward_utils import fix_charge, is_small_cylinder, is_exo, check_smiles_change, get_property_mol
+    from reward_utils import fix_charge, is_small_cylinder, is_exo, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
     from xtb_opt import xtbEnergy
     
     os.environ["OPENBLAS_NUM_THREADS"] = "1"

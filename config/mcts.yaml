@@ -1,16 +1,16 @@
-output_dir: result/testing
+output_dir: result/testing_defaults
 
 c_val: 0.75
 # threshold_type: [time, generation_num]
 threshold_type: generation_num
 hours: 0.05
-generation_num: 1000
+generation_num: 10
 use_selfies: False
 
 model_setting: 
-  model_json: model/HCs_16.04/model.tf25.json
-  model_weight: model/HCs_16.04/model.tf25.best.ckpt.h5
-  token: model/HCs_16.04/tokens.pkl
+  model_json: model/DdefaultModels/250k_zinc_default/model.tf25.json
+  model_weight: model/DdefaultModels/250k_zinc_default/model.tf25.best.ckpt.h5
+  token: model/DdefaultModels/250k_zinc_default/tokens.pkl
 reward_setting:
   reward_module: reward.chem_sim_reward
   reward_class: CBDock_reward
