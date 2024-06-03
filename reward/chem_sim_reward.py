@@ -20,7 +20,7 @@ class CBDock_reward(Reward):
         def binding_mol(mol):
             """ Calculate values contributing to the reward arising from binding
             """
-            # This is run only time courtesy of the decorated chemsim_init function
+            # This is run only one time courtesy of the decorated chemsim_init function
             simulator = chemsim_init(conf)
                 
             smi = mol.GetProp("_Smiles")

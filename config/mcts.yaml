@@ -67,7 +67,7 @@ triplebond_filter:
   class: TripleBondFilter
 
 # Parrallelisation strategy
-leaf_parallel: True
+leaf_parallel: False
 # Number of leaves simultaneously
 leaf_parallel_num: 4
 
