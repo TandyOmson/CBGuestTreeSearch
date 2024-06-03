@@ -116,7 +116,10 @@ class CBDock_reward(Reward):
         if not values[0]:
             binding_en = 25.0
         else:
-            binding_en = float(values[0].GetProp("en"))
+            try:
+                binding_en = float(values[0].GetProp("en"))
+            except:
+                binding_en = 25.0
         #sa_score = values[1]
         print("binding: ", binding_en)
 

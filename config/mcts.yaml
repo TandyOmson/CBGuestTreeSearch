@@ -1,16 +1,16 @@
-output_dir: result/testing_defaults
+output_dir: result/HC_0
 
 c_val: 0.75
 # threshold_type: [time, generation_num]
 threshold_type: generation_num
-hours: 0.05
-generation_num: 10
+hours: 48.0
+generation_num: 10000
 use_selfies: False
 
 model_setting: 
-  model_json: model/250k_zinc/model.tf25.json
-  model_weight: model/250k_zinc/model.tf25.best.ckpt.h5
-token: model/250k_zinc/tokens.pkl
+  model_json: model/HCs_16.04/model.tf25.json
+  model_weight: model/HCs_16.04/model.tf25.best.ckpt.h5
+token: model/HCs_16.04/tokens.pkl
 reward_setting:
   reward_module: reward.chem_sim_reward
   reward_class: CBDock_reward
@@ -69,7 +69,7 @@ triplebond_filter:
 # Parrallelisation strategy
 leaf_parallel: True
 # Number of leaves simultaneously
-leaf_parallel_num: 2
+leaf_parallel_num: 4
 
 # Chemistry Simulator Settings
 
@@ -77,7 +77,7 @@ leaf_parallel_num: 2
 host_pdbqt: reward/data/host_aligned.pdbqt
 host_sdf: reward/data/host_aligned.sdf
 host_en: -157089.5126460131
-molgen_n_confs: 1
+molgen_n_confs: 3
 molgen_rmsd_threshold: 0.35
 vina_num_rotations: 4
 vina_num_translations: 4
@@ -93,6 +93,6 @@ min_rmsd: 3.0
 # xtb settings
 thermo: True
 solvent: True
-optlevel: crude
+optlevel: normal
 additional_ens: True
 partial_charges: False

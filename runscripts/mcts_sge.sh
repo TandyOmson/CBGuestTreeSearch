@@ -6,10 +6,13 @@
 #$ -pe smp 40
 #$ -P Gold
 #$ -A UCL_chemM_Lee
+#$ -N mcts
 
-cd /app/TEST_MCTS
-eval "$(conda shell.bash hook)"
-conda activate chemts
+cd /home/uccaat2/Scratch/mcts2
+
+module load python/miniconda3/4.10.3
+source $UCL_CONDA_PATH/etc/profile.d/conda.sh
+conda activate chemts2
 
 echo "Job start"
 
