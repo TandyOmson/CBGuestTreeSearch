@@ -119,12 +119,12 @@ class CBDock_reward(Reward):
             try:
                 binding_en = float(values[0].GetProp("en"))
             except:
-                binding_en = 25.0
+                binding_en = 1000.0
         #sa_score = values[1]
         print("binding: ", binding_en)
 
         # Use base score as rough binding energy of adamantane 
-        base_score = -20.0
+        base_score = 0.0
         score_diff = binding_en - base_score
         
         # + sa_score/5.0
