@@ -69,7 +69,7 @@ triplebond_filter:
 # Parrallelisation strategy
 leaf_parallel: False
 # Number of leaves simultaneously
-leaf_parallel_num: 4
+leaf_parallel_num: 1
 
 # Chemistry Simulator Settings
 
