@@ -98,6 +98,12 @@ class xtbEnergy():
         en_dict = {}
 
         for i in gen:
+            if " ".join(i[:3]) == "| TOTAL ENERGY":
+                en_dict["scf_en"] = float(i[3])
+
+            if " ".join(i[:3]) == "| TOTAL ENTHALPY":
+                en_dict["enthal"] = float(i[3])
+                
             if " ".join(i[:3]) == ":: G(RRHO) contrib.":
                 en_dict["thermo"] = float(i[3])
 
