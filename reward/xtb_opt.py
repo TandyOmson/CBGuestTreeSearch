@@ -104,12 +104,6 @@ class xtbEnergy():
             if " ".join(i[:3]) == "| TOTAL ENTHALPY":
                 en_dict["enthal"] = float(i[3])
                 
-            if " ".join(i[:3]) == ":: G(RRHO) contrib.":
-                en_dict["thermo"] = float(i[3])
-
-            if " ".join(i[:3]) == ":: zero point":
-                en_dict["zero_point"] = float(i[4])
-
             if " ".join(i[:3]) == ":: repulsion energy":
                 en_dict["repulsion"]  = float(i[3])
 
@@ -156,6 +150,13 @@ class xtbEnergy():
                         en_dict["quadrupole_xz"] = float(i[4])
                         en_dict["quadrupole_yz"] = float(i[5])
                         en_dict["quadrupole_zz"] = float(i[6])
+
+                if " ".join(i[:3]) == ":: G(RRHO) contrib.":
+                    en_dict["thermo"] = float(i[3])
+
+                if " ".join(i[:3]) == ":: zero point":
+                    en_dict["zero_point"] = float(i[4])
+
             except:
                 continue
 
