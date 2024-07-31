@@ -103,6 +103,9 @@ class xtbEnergy():
 
             if " ".join(i[:3]) == "| TOTAL ENTHALPY":
                 en_dict["enthal"] = float(i[3])
+
+            if " ".join(i[:3]) == ":: SCC energy":
+                en_dict["scc_en"] = float(i[3])
                 
             if " ".join(i[:3]) == ":: repulsion energy":
                 en_dict["repulsion"]  = float(i[3])
