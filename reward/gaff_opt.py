@@ -141,33 +141,24 @@ class AmberCalculator():
         self.host_en = host_en
         
     # For gaff, the routine needs to keep the tempfiles of the guest to have the prmtop for the complex
-    def get_guest_complex_opt(self, comp, *guests):
+    def get_guest_complex_opt(self, comp, guest):
         """ optimises the guest, keeping the prmtop for the complex, then optimises the complex
         """
         with tempfile.TemporaryDirectory(dir=os.path.abspath(f"{self.outdir}")) as d:
             orgdir = os.getcwd()
             os.chdir(d)
 
-            finalguestmols = []
-            finalguestens = []
-            guestmolecules = []
-            # Get opt for the guests
-            for count, i in enumerate(guests):
-                guest = Molecule(i, f"guest_{count}")
-                guestmolecules.append(guest)
-                finalguestmol, guest_en = self.get_opt(guest, d)
-                finalguestmols.append(finalguestmol)
-                finalguestens.append(finalguestens)
-
+            guestmolecule = Molecule(guest, "guest")
             complexmolecule = Molecule(comp, "complex")
-            setattr(complexmolecule, "constituents", [self.host, *guestmolecules])
+            setattr(complexmolecule, "constituents", [self.host, guestmolecule])
 
+            finalguestmol, guest_en = self.get_opt(guestmolecule, d)
             finalcomplexmol, complex_en = self.get_opt(complexmolecule, d)
             os.chdir(orgdir)
             # A breakpoint can be used to check temporary directory before it is deleted for debugging
             breakpoint()
 
-        return finalcomplexmol, finalguestmols
+        return finalcomplexmol, finalguestmol
             
     def get_opt(self, molecule, min_outdir):
         """ Calls methods to optimise mol and retrieve energy
@@ -218,16 +209,16 @@ class AmberCalculator():
         pass
 
     @staticmethod
-    def antechamber(molecule, preprocessing_outdir, antechamber_conf):
+    def antechamber(molecule, preprocessing_outdir, conf):
         molecule.files["mol2"] = f"{preprocessing_outdir}/{molecule.name}.mol2"
                
         ante_cmd = ["antechamber", "-i", molecule.files["pdb4amber"], "-fi", "pdb", "-fo", "mol2", "-o", molecule.files["mol2"]]
             
-        if antechamber_conf["chg_method"] == "read":
+        if conf["chg_method"] == "read":
             ante_cmd.extend(["-c", "rc", "-cf", molecule.files["chgfile"]]) 
             
         else:
-            chg_method = antechamber_conf["chg_method"]
+            chg_method = conf["chg_method"]
             ante_cmd.extend(["-c", chg_method])
 
         ante_cmd.extend(["-s", "2", "-pf", "yes", "-rn", molecule.residue_name, "-at", "gaff2"])
@@ -391,7 +382,7 @@ class AmberCalculator():
         # Minimsise single molecule
         if len(Chem.GetMolFrags(molecule.mol, asMols=True)) == 1:
             AmberCalculator.get_pdb(molecule, preprocessing_outdir)
-            AmberCalculator.antechamber(molecule, preprocessing_outdir, self.conf["antechamber_conf"])
+            AmberCalculator.antechamber(molecule, preprocessing_outdir, self.conf)
             AmberCalculator.parmchk(molecule, preprocessing_outdir)
             AmberCalculator.tleap_single(molecule, preprocessing_outdir)
 
@@ -551,7 +542,7 @@ class AmberCalculator():
 if __name__ == "__main__":
 
     # May wish to change antechamber conf to file input as with sander
-    gaff_conf = {"antechamber_conf" : {"chg_method" : "gas"},
+    gaff_conf = {"chg_method" : "gas",
                  "min_file" : os.path.abspath("min.in"),
                  "output_dir" : "temp",
                  "host_dir" : os.path.abspath("data/gaff_host"),
@@ -581,7 +572,7 @@ if __name__ == "__main__":
         try:
             # Gasteiger charges assume total charge is 0, need to switch to a slower method
             if Chem.GetFormalCharge(complexmol) != 0:
-                gaff_conf["antechamber_conf"] = {"chg_method" : "bcc"}
+                gaff_conf["chg_method"] = "bcc"
                 
             finalcomplex, finalguests = gaff_calc.get_guest_complex_opt(complexmol, guestmol)
 

@@ -27,6 +27,7 @@ if __name__ != "__main__":
     from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
     from reward.docking import DockLigand
     from reward.xtb_opt import xtbEnergy
+    from reward.gaff_opt import AmberCalculator
 
 # Class for diagnostic error handling
 class ChemSimError(Exception):
@@ -49,6 +50,7 @@ class ChemSim():
         # Non optional variables set as class attributes
         self.hostmol = hostmol
         self.outdir = conf["output_dir"]
+        
         # SET AS STANDALONE CHEMISTRY SIMULATOR
         self.is_standalone = kwargs.get("standalone", False)
         self.proplist = []
@@ -169,14 +171,11 @@ class ChemSim():
     def run_opt(self, complexmol, guestmol):
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
-        calc = xtbEnergy(self.conf)
+        calc = AmberCalculator(self.conf)
         try:
-            #print("STATUS - optimising guest")
-            optguestmol, guest_en = calc.get_opt(guestmol)
-            #print("STATUS - optimising complex")
-            optcomplexmol, complex_en = calc.get_opt(complexmol)
+            optcomplexmol, optguestmol = calc.get_guest_complex_opt(complexmol, guestmol)
         except Exception as e:
-            raise ChemSimError("Error in xTB optimisation") from e
+            raise ChemSimError("Error in optimisation") from e
         
         # POST FILTERS (sets bad score in MCTS, sets flags in ChemSim)
         # CURRENTLY ONLY APPLY TO HCs DIFFERENT POST FITLERS NEEDED FOR OTHER TYPES OF MOLECULES
@@ -197,9 +196,14 @@ class ChemSim():
         bad_length = get_incorrect_bond_length(optcomplexmol)
         if bad_length:
             optcomplexmol.SetProp("bad_length", "True")
-                
-        bind_en = complex_en - guest_en - self.conf["host_en"]
-        optcomplexmol.SetDoubleProp("en", bind_en)
+            
+        complex_en = optcomplexmol.GetProp("en")
+        guest_ens = optguestmol.GetProp("en")
+        
+        bind_en = complex_en - self.conf["host_en"] - guest_en
+
+        optcomplexmol.SetDoubleProp("binding", bind_en)
+        optcomplexmol.SetDoubleProp("en", complex_en)
         optguestmol.SetDoubleProp("en", guest_en)
 
         return get_property_mol(optcomplexmol), get_property_mol(optguestmol)
