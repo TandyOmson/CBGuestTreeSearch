@@ -7,12 +7,17 @@
 #$ -P Gold
 #$ -A UCL_chemM_Lee
 
-cd /app/CBGuestTreeSearch
-eval "$(conda shell.bash hook)"
-conda activate chemts
+module unload gcc-libs
+module unload mpi
+module load amber/16/mpi/intel-2015-update2
+
+cd /home/uccaat2/Scratch/mcts_gaff/runscripts
+module load python/miniconda3/4.10.3
+source $UCL_CONDA_PATH/etc/profile.d/conda.sh
+conda activate chemts2
 
 echo "Job start"
 
-python3 reward/chem_sim.py -c config/cationic/chem_sim_small_cationic_1.yaml -i data/cationic/x00
+python3 reward/chem_sim.py -c config/chem_sim.yaml -i /home/uccaat2/Scratch/mcts_gaff/data/benchmarking/benchmarkingdata.smi
 
 echo "Job done"
