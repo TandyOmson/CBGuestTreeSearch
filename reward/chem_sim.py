@@ -54,6 +54,7 @@ class ChemSim():
         # SET AS STANDALONE CHEMISTRY SIMULATOR
         self.is_standalone = kwargs.get("standalone", False)
         self.proplist = []
+        self.calculator = AmberCalculator(conf)
 
     def setup(self):
         """ Sets up output directory for chemistry simulation data
@@ -171,9 +172,8 @@ class ChemSim():
     def run_opt(self, complexmol, guestmol):
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
-        calc = AmberCalculator(self.conf)
         try:
-            optcomplexmol, optguestmol = calc.get_guest_complex_opt(complexmol, guestmol)
+            optcomplexmol, optguestmol = self.calculator.get_guest_complex_opt(complexmol, guestmol)
         except Exception as e:
             raise ChemSimError("Error in optimisation") from e
         
@@ -181,6 +181,7 @@ class ChemSim():
         # CURRENTLY ONLY APPLY TO HCs DIFFERENT POST FITLERS NEEDED FOR OTHER TYPES OF MOLECULES
         
         # If the result of xTB optimisation is exo, set bad score
+        """
         exo = is_exo(optcomplexmol, self.hostmol, self.conf)
         if exo:
             optcomplexmol.SetProp("is_exo", "True")
@@ -196,15 +197,16 @@ class ChemSim():
         bad_length = get_incorrect_bond_length(optcomplexmol)
         if bad_length:
             optcomplexmol.SetProp("bad_length", "True")
-            
-        complex_en = optcomplexmol.GetProp("en")
-        guest_ens = optguestmol.GetProp("en")
-        
-        bind_en = complex_en - self.conf["host_en"] - guest_en
+        """
 
-        optcomplexmol.SetDoubleProp("binding", bind_en)
-        optcomplexmol.SetDoubleProp("en", complex_en)
-        optguestmol.SetDoubleProp("en", guest_en)
+        complex_en = optcomplexmol.GetProp("gaff_en")
+        guest_en = optguestmol.GetProp("gaff_en")
+        
+        bind_en = float(complex_en) - self.conf["host_en"] - float(guest_en)
+
+        optcomplexmol.SetDoubleProp("binding", float(bind_en))
+        optcomplexmol.SetDoubleProp("en", float(complex_en))
+        optguestmol.SetDoubleProp("en", float(guest_en))
 
         return get_property_mol(optcomplexmol), get_property_mol(optguestmol)
     
@@ -217,6 +219,7 @@ if __name__ == "__main__":
     from docking import DockLigand
     from reward_utils import fix_charge, is_small_cylinder, is_exo, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
     from xtb_opt import xtbEnergy
+    from gaff_opt import AmberCalculator
     
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
     os.environ["OMP_NUM_THREADS"] = "16"
@@ -288,6 +291,9 @@ if __name__ == "__main__":
 
                 conf["optlevel"] = org_optlevel
                 conf["thermo"] = org_thermo
+
+            else:
+                bestconf, bestguestconf = simulator.run_dock(confs[0])
                 
             molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
             molout.SetProp("smiles", smi)
@@ -301,7 +307,7 @@ if __name__ == "__main__":
             print(traceback.format_exc())
             return None
         
-    with Parallel(n_jobs=8, prefer="processes", return_as="generator", verbose=51) as parallel:
+    with Parallel(n_jobs=conf["n_jobs"], prefer="processes", return_as="generator", verbose=51) as parallel:
         for result in parallel(delayed(process_molecule_wrapper)(simulator, smi) for smi in smi_gen):
             if result:
                 simulator.flush(result[0])

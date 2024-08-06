@@ -128,17 +128,18 @@ class AmberCalculator():
         # Non optional variables assigned as class attributes
         #self.is_solvent = conf["solvent"]
         #self.is_thermo = conf["thermo"]
-        self.outdir = conf["output_dir"]
-        self.hostdir = conf["host_dir"]
-        self.host_sdf = conf["host_sdf"]
+        self.outdir = os.path.abspath(conf["output_dir"])
+        self.hostdir = os.path.abspath(conf["host_dir"])
+        self.host_sdf = os.path.abspath(conf["host_sdf"])
 
         # Get host energy
         hostmol = Chem.MolFromMolFile(conf["host_sdf"], removeHs=False)
         self.host = Molecule(hostmol, "cb7")
         print("optimising host")
-        hostmol, host_en = self.get_opt(self.host, conf["host_dir"])
+        hostmol, host_en = self.get_opt(self.host, self.hostdir)
         self.hostmol = hostmol
         self.host_en = host_en
+        print("host optimised")
         
     # For gaff, the routine needs to keep the tempfiles of the guest to have the prmtop for the complex
     def get_guest_complex_opt(self, comp, guest):
@@ -155,8 +156,6 @@ class AmberCalculator():
             finalguestmol, guest_en = self.get_opt(guestmolecule, d)
             finalcomplexmol, complex_en = self.get_opt(complexmolecule, d)
             os.chdir(orgdir)
-            # A breakpoint can be used to check temporary directory before it is deleted for debugging
-            breakpoint()
 
         return finalcomplexmol, finalguestmol
             
@@ -167,9 +166,21 @@ class AmberCalculator():
         os.chdir(min_outdir)
         Chem.MolToMolFile(molecule.mol, f"{molecule.name}.sdf", kekulize=False)
 
-        self.molecule_preprocess(molecule, preprocessing_outdir=os.path.abspath(min_outdir))
-        self.conj_newt_nab(molecule, min_outdir=os.path.abspath(min_outdir))
-        self.get_en_conj_newt(molecule, outfile=os.path.abspath(f"{molecule.files['min_out']}"))
+        if Chem.GetFormalCharge(molecule.mol) != 0:
+            self.conf["chg_method"] = "bcc"
+
+            self.molecule_preprocess(molecule, preprocessing_outdir=min_outdir)
+            self.conj_newt_nab(molecule, min_outdir=min_outdir)
+            #breakpoint()
+            self.get_en_conj_newt(molecule, outfile=f"{molecule.files['min_out']}")
+
+            self.conf["chg_method"] = "gas"
+
+        else:
+            self.molecule_preprocess(molecule, preprocessing_outdir=min_outdir)
+            self.conj_newt_nab(molecule, min_outdir=min_outdir)
+            #breakpoint()
+            self.get_en_conj_newt(molecule, outfile=f"{molecule.files['min_out']}")
 
         en = molecule.en_dict["en"]
         
@@ -183,7 +194,7 @@ class AmberCalculator():
 
         for key, val in molecule.en_dict.items():
             finalmol.SetProp(f"gaff_{key}", str(val))
-
+            
         os.chdir(orgdir)
 
         return finalmol, en
@@ -221,7 +232,7 @@ class AmberCalculator():
             chg_method = conf["chg_method"]
             ante_cmd.extend(["-c", chg_method])
 
-        ante_cmd.extend(["-s", "2", "-pf", "yes", "-rn", molecule.residue_name, "-at", "gaff2"])
+        ante_cmd.extend(["-nc", str(Chem.GetFormalCharge(molecule.mol)), "-s", "2", "-pf", "yes", "-rn", molecule.residue_name, "-at", "gaff2"])
 
         sp.run(ante_cmd, stdout=sp.DEVNULL)
 

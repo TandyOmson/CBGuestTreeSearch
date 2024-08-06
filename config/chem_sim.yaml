@@ -1,10 +1,12 @@
 output_dir: result/testing
 
+n_jobs: 1
+
 # Docking Settings
 host_dir: reward/data/gaff_host
 host_pdbqt: reward/data/host_aligned.pdbqt
 host_sdf: reward/data/host_aligned.sdf
-molgen_n_confs: 5
+molgen_n_confs: 1
 molgen_rmsd_threshold: 0.35
 vina_num_rotations: 5
 vina_num_translations: 5
@@ -30,7 +32,7 @@ partial_charges: False
 
 # gaff settings
 chg_method: gas
-min_file: reward/data/min.in
+min_file: reward/min.in
 
 # REDUNDANT IN CHEMSIM
 c_val: 0.75
