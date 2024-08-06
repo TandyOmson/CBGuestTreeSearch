@@ -173,9 +173,9 @@ class AmberCalculator():
             self.molecule_preprocess(molecule, preprocessing_outdir=min_outdir)
             self.minimize_sander(molecule, min_outdir=min_outdir, sander_file=self.min_file)
             self.get_opt_pdb(molecule,  min_outdir=min_outdir)
-            self.get_en_sander(molecule, outfilefile=molecule.files["min_out_sander"])
+            self.get_en_sander(molecule, outfile=molecule.files["min_out_sander"])
             self.conj_newt_nab(molecule, min_outdir=min_outdir)
-            breakpoint()
+            #breakpoint()
             #self.get_en_conj_newt(molecule, min_outdir=min_outdir)
             self.get_nmode(molecule, outfile=molecule.files['min_out'])
 
@@ -187,7 +187,7 @@ class AmberCalculator():
             self.get_opt_pdb(molecule,  min_outdir=min_outdir)
             self.get_en_sander(molecule, outfile=molecule.files["min_out_sander"])
             self.conj_newt_nab(molecule, min_outdir=min_outdir)
-            breakpoint()
+            #breakpoint()
             #self.get_en_conj_newt(molecule, outfile=molecule.files['min_out'])
             self.get_nmode(molecule, outfile=molecule.files['min_out'])
 
@@ -312,7 +312,8 @@ class AmberCalculator():
                 "-p", molecule.files['prmtop'],
                 "-c", molecule.files['rst7'],
                 "-r", molecule.files['ncrst']],
-               stdout=open(f"{min_outdir}/min.err", "w")
+               stdout=open(f"{min_outdir}/min.err", "w"),
+               stderr=open(f"{min_outdir}/min.err", "w"),
         )
         sp.run(["mv", "mdinfo", molecule.files["min_out_sander"]])
 
