@@ -1,7 +1,7 @@
 Initial minimisation of CB7
  &cntrl
   imin=1,
-  maxcyc=100000, ncyc=500, drms=0.00000001,
+  maxcyc=20000, ncyc=1000, drms=0.0000001,
   cut=99,
   rgbmax=99, 
   igb=1,
