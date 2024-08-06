@@ -131,6 +131,7 @@ class AmberCalculator():
         self.outdir = os.path.abspath(conf["output_dir"])
         self.hostdir = os.path.abspath(conf["host_dir"])
         self.host_sdf = os.path.abspath(conf["host_sdf"])
+        self.min_file = os.path.abspath(conf["min_file"])
 
         # Get host energy
         hostmol = Chem.MolFromMolFile(conf["host_sdf"], removeHs=False)
@@ -170,17 +171,25 @@ class AmberCalculator():
             self.conf["chg_method"] = "bcc"
 
             self.molecule_preprocess(molecule, preprocessing_outdir=min_outdir)
+            self.minimize_sander(molecule, min_outdir=min_outdir, sander_file=self.min_file)
+            self.get_opt_pdb(molecule,  min_outdir=min_outdir)
+            self.get_en_sander(molecule, outfilefile=molecule.files["min_out_sander"])
             self.conj_newt_nab(molecule, min_outdir=min_outdir)
-            #breakpoint()
-            self.get_en_conj_newt(molecule, outfile=f"{molecule.files['min_out']}")
+            breakpoint()
+            #self.get_en_conj_newt(molecule, min_outdir=min_outdir)
+            self.get_nmode(molecule, outfile=molecule.files['min_out'])
 
             self.conf["chg_method"] = "gas"
 
         else:
             self.molecule_preprocess(molecule, preprocessing_outdir=min_outdir)
+            self.minimize_sander(molecule, min_outdir=min_outdir, sander_file=self.min_file)
+            self.get_opt_pdb(molecule,  min_outdir=min_outdir)
+            self.get_en_sander(molecule, outfile=molecule.files["min_out_sander"])
             self.conj_newt_nab(molecule, min_outdir=min_outdir)
-            #breakpoint()
-            self.get_en_conj_newt(molecule, outfile=f"{molecule.files['min_out']}")
+            breakpoint()
+            #self.get_en_conj_newt(molecule, outfile=molecule.files['min_out'])
+            self.get_nmode(molecule, outfile=molecule.files['min_out'])
 
         en = molecule.en_dict["en"]
         
@@ -294,18 +303,18 @@ class AmberCalculator():
     @staticmethod
     def minimize_sander(molecule, min_outdir, sander_file):
         molecule.files["ncrst"] = f"{min_outdir}/{molecule.name}.ncrst"
-        molecule.files["min_out_sander"] = f"{min_outdir}/mdinfo"
-        molecule.files["min_log"] = f"{min_outdir}/{molecule.name}_sander_min.log"
+        molecule.files["min_traj"] = f"{min_outdir}/{molecule.name}.traj"
+        molecule.files["min_out_sander"] = f"{min_outdir}/{molecule.name}_sander_min.log"
 
         sp.run(["sander", "-O",
                 "-i", sander_file,
-                "-o", molecule.files['min_log'],
+                "-o", molecule.files['min_traj'],
                 "-p", molecule.files['prmtop'],
                 "-c", molecule.files['rst7'],
                 "-r", molecule.files['ncrst']],
                stdout=open(f"{min_outdir}/min.err", "w")
         )
-        sp.run(["mv", "mdinfo", f"{min_outdir}"])
+        sp.run(["mv", "mdinfo", molecule.files["min_out_sander"]])
 
     @staticmethod
     def minimize_nab(molecule, min_outdir):
@@ -352,25 +361,25 @@ class AmberCalculator():
             'allocate x[ 3*m.natoms ];  allocate f[ 3*m.natoms ];'
             'setxyz_from_mol( m, NULL, x );',
 
-            'mm_options( "ntpr=50, nsnb=99999, gb=1, gbsa=1, cut=999.0, rgbmax=999.0, diel=C, dielc=1.0" );',
-            'mme_init( m, NULL, "::Z", x, NULL);',
+            'mm_options( "ntpr=5000, nsnb=99999, gb=1, gbsa=1, cut=99.0, rgbmax=99.0, diel=C" );',
+            'mme_init( m, NULL, ":::", x, NULL);',
         
             '// conjugate gradient minimization',
             # 'dgrad = 3*natoms*0.001;',
-            'conjgrad(x, 3*m.natoms, fret, mme, 0.00001, 0.01, 100000 );',
+            '//conjgrad(x, 3*m.natoms, fret, mme, 0.00001, 0.00001, 100000 );',
         
             '// Newton-Raphson minimization\fP',
-            'mm_options( "ntpr=1" );',
-            'newton( x, 3*m.natoms, fret, mme, mme2, 0.0000001, 0.0, 100 );',
+            'mm_options( "ntpr=100" );',
+            '//newton( x, 3*m.natoms, fret, mme, mme2, 0.0000001, 0.0, 2000 );',
 
             '// Write out the minimized pdb',
-            'putpdb( "{2}", m );',
+            '//putpdb( "{2}", m );',
         
             '// get the normal modes:',
             'nmode( x, 3*m.natoms, mme2, 0, 0, 0.0, 0.0, 0);'
         ]
         
-        nab_script = [x.format(molecule.files["pdb4amber"], molecule.files["prmtop"], molecule.files["min_pdb"])+'\n' for x in nab_script]
+        nab_script = [x.format(molecule.files["min_pdb"], molecule.files["prmtop"], molecule.files["min_pdb"])+'\n' for x in nab_script]
         
         # Generate nab script (for some reason have to hard code argv, another thing to try and fix
         with open(f"{min_outdir}/min_prog.nab", 'w') as w:
@@ -416,7 +425,7 @@ class AmberCalculator():
         min_out = [i.split() for i in open(outfile, "r")]
         en_dict = {}
 
-        en_dict["Etot"] = float(min_out[3][1])
+        en_dict["en"] = float(min_out[3][1])
         en_dict["Ebond"] = float(min_out[5][2]) # bond stretching
         en_dict["Eangle"] = float(min_out[5][5]) # angle bending
         en_dict["Edihed"] = float(min_out[5][8]) # intrinsic dihedral
@@ -454,7 +463,7 @@ class AmberCalculator():
             if i[0] == "esurf:":
                 en_dict["Enp"] = float(i[1]) # Non polar solvent energy, associate with surface area in contact with solvent
             if i[0] == "Total:":
-                en_dict["Etot"] = float(i[1])
+                en_dict["en"] = float(i[1])
                 
         setattr(molecule, "en_dict", en_dict)
 
@@ -533,20 +542,51 @@ class AmberCalculator():
         # Retrieves normal modes from the nmode calculation and calculates configurational entropy contribution to energy
         min_out = [i.split() for i in open(outfile, "r")]
         
-        min_out.remove([])
+        # Get vibrational mode frequencies
+        frequencies = []
 
-        E_zpve = 0
-        E_entropic = 0
-        for i in min_out:
+        nmode_out = (i.split() for i in open(outfile, "r"))
+        i = next(nmode_out)
+
+        while i[0] != "ff":
+            i = next(nmode_out)
+            if not bool(i):
+                i = next(nmode_out)
+        done = False
+        while done == False:
             try:
-                if i[0] == "Zero-point":
-                    E_zpve = float(i[3])
-                if i[0] == "Total:":
-                    E_entropic = float(i[1])
-            except:
-                continue
+                i = next(nmode_out)
+                frequencies.append(i[1])
+            except StopIteration:
+                done = True
+            
+        # Valid frequencies will depend on number of degrees of freedom lost whether it is a complex, 6 for guest
+        valid_freqs = 6
+        try:
+            extra_frags = GetMolFrags(molecule.mol, asMols=True) - 1
+        except:
+            extra_frags = 0
+        
+        valid_freqs += extra_frags*6
 
-        molecule.en_dict["Etot_corr"] = molecule.en_dict["Etot"] - (E_entropic - E_zpve)
+        # Convert frequencies to appropraite units, account for loss of degrees of freedom
+        frequencies = [float(x)*1e2*2.99e8 for x in frequencies[valid_freqs:]]
+        
+        k = 1.38E-23
+        R = 8.3145
+        T = 298.15
+        beta = 1/(k*T)
+        h = 6.626E-34
+        Srrho = 0
+        for f in frequencies:
+            inc = R*(beta*h*f*(math.exp(beta*h*f)-1)**-1 - math.log(1-math.exp(-beta*h*f)))
+            Srrho = inc+Srrho
+        
+        #  kcal/mol
+        Srrho = Srrho/4.184*T/1000
+        molecule.en_dict["Esrrho"] = Srrho
+
+        molecule.en_dict["Ecorr"]  = molecule.en_dict["en"] - molecule.en_dict["Esrrho"]
 
         return
 
