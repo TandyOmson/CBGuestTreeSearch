@@ -1,0 +1,7 @@
+source leaprc.gaff2
+loadamberparams /home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7.frcmod
+CB7 = loadmol2 /home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7.mol2
+check CB7
+saveoff CB7 /home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7.lib
+saveamberparm CB7 /home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7.prmtop /home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7.rst7
+quit

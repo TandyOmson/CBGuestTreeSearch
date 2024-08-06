@@ -1,0 +1,9 @@
+Initial minimisation of CB7
+ &cntrl
+  imin=1,
+  maxcyc=1000000, ncyc=50, drms=0.0001,
+  cut=12, 
+  igb=1, gbsa=1, dielc=1.0,
+  ntmin=2, ntb=0,
+ &end
+ 

@@ -1,0 +1,4 @@
+There are a few things going on here:
+ - nab, which is the original scriting langauge for molecular manipulations and simulations
+ - nabc, which is the the nab langauge fully integrated into C, and compiled in c
+ - nab2c, which takes a script in nab and converts it to a C code.

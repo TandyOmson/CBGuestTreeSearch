@@ -1,0 +1,20 @@
+molecule m;
+
+float x[4000], fret;
+
+m = getpdb( "/home/spine/DProjects/Dprograms_and_tests/Damber_gaff/gaff_script_nab/preprocessing/cb7/cb7.pdb" );
+readparm( m, "/home/spine/DProjects/Dprograms_and_tests/Damber_gaff/gaff_script_nab/preprocessing/cb7/cb7.prmtop" );
+mm_options( "ntpr=50, nsnb=99999, gb=1, gbsa=1, cut=999.0, rgbmax=999.0, diel=C, dielc=1.0" );
+
+mme_init(m, NULL, "::Z", x, NULL);
+setxyz_from_mol( m, NULL, x);
+
+// conjugate gradient minimization
+conjgrad( x, 3*m.natoms, fret, mme, 0.0001, 0.0001, 200000 );
+
+// Newton-Raphson minimization
+mm_options( "ntpr=1" );
+newton( x, 3*m.natoms, fret, mme, mme2, 0.00000001, 0.0, 60 );
+
+// get the normal modes:
+nmode( x, 3*m.natoms, mme2, 0, 0, 0.0, 0.0, 0);
