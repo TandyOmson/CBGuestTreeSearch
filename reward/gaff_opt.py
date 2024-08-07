@@ -138,10 +138,21 @@ class AmberCalculator():
         # Get host energy
         hostmol = Chem.MolFromMolFile(conf["host_sdf"], removeHs=False)
         self.host = AmberMol(hostmol, "cb7")
+
         print("optimising host")
-        hostmol, host_en = self.get_opt(self.host, self.hostdir)
+        orgdir = os.getcwd()
+        os.chdir(self.hostdir)
+        hostmol, host_en = self.get_opt(self.host)
+        os.chdir(orgdir)
+        
         self.hostmol = hostmol
         self.host_en = host_en
+
+        self.host.files["prmtop"] = self.hostdir + "/" + self.host.files["prmtop"]
+        self.host.files["lib"] = self.hostdir + "/" + self.host.files["lib"]
+        self.host.files["frcmod"] = self.hostdir + "/" + self.host.files["frcmod"]
+        self.host.files["mol2"] = self.hostdir + "/" + self.host.files["mol2"]
+        
         print("host optimised")
         
     # For gaff, the routine needs to keep the tempfiles of the guest to have the prmtop for the complex
@@ -156,8 +167,8 @@ class AmberCalculator():
                 complexambermol = AmberMol(comp, "complex")
                 setattr(complexambermol, "constituents", [self.host, guestambermol])
 
-                finalguestmol, guest_en = self.get_opt(guestambermol, d)
-                finalcomplexmol, complex_en = self.get_opt(complexambermol, d)
+                finalguestmol, guest_en = self.get_opt(guestambermol)
+                finalcomplexmol, complex_en = self.get_opt(complexambermol)
                 os.chdir(orgdir)
                 
             except:
@@ -214,7 +225,7 @@ class AmberCalculator():
         ambermol.files["pdb"] = f"{ambermol.name}.pdb"
         ambermol.files["pdb4amber"] = f"{ambermol.name}_4amber.pdb"
         
-        Chem.MolToMolFile(ambmol.mol, sdffile)
+        Chem.MolToMolFile(ambermol.mol, ambermol.files["sdf"])
         sp.run(["obabel", "-isdf", ambermol.files["sdf"], "-opdb", "-O", ambermol.files["pdb"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
         sp.run(["pdb4amber", "-i", ambermol.files["pdb"], "-o", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
 
@@ -225,7 +236,7 @@ class AmberCalculator():
             edit_resname(ambermol.files["pdb4amber"], ambermol)
 
     @staticmethod
-    def sovlate_packmol_memgen(ambermol, preprocessing_outdir):
+    def sovlate_packmol_memgen(ambermol):
         pass
 
     @staticmethod
@@ -276,7 +287,7 @@ class AmberCalculator():
                         "quit"
                         ]
 
-        with open(f"{preprocessing_outdir}/leap.in", "w") as fw:
+        with open(f"leap.in", "w") as fw:
             for i in tleap_script:
                fw.write(f"{i}\n")
 
@@ -302,7 +313,7 @@ class AmberCalculator():
                              "quit"
         ])
 
-        with open(f"{preprocessing_outdir}/leap.in", "w") as fw:
+        with open(f"leap.in", "w") as fw:
             for i in tleap_script:
                fw.write(f"{i}\n")
 
@@ -358,7 +369,7 @@ class AmberCalculator():
     def nmode_nab(ambermol):
         # Runs conjugate gradient descent minimisation, followed by newton raphson minimisation, followed by nmode
         # Uses a nab script, requires original nab compiler. Am planning to get a nabc script working if possible
-        ambermol.files["nmode_out"] = f"{ambermol.name}_min.log"
+        ambermol.files["nmode_out"] = f"{ambermol.name}_nmode.log"
         ambermol.files["min_pdb"] = f"{ambermol.name}_min.pdb"
         
         nab_script = [
@@ -422,7 +433,7 @@ class AmberCalculator():
 
     # CLASS METHODS FOR RETRIEVAL OF OUTPUTS
     def get_opt_pdb(self, ambermol):
-        ambermol.files["min_pdb"] = "{ambermol.name}_min.pdb"
+        ambermol.files["min_pdb"] = f"{ambermol.name}_min.pdb"
         
         sp.run(["ambpdb", "-p", ambermol.files['prmtop'], "-c", ambermol.files["ncrst"]], stdout=open(ambermol.files["min_pdb"], "w"))
         
