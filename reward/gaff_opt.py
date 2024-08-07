@@ -146,18 +146,21 @@ class AmberCalculator():
     def get_guest_complex_opt(self, comp, guest):
         """ optimises the guest, keeping the prmtop for the complex, then optimises the complex
         """
-        with tempfile.TemporaryDirectory(dir=os.path.abspath(f"{self.outdir}")) as d:
-            orgdir = os.getcwd()
-            os.chdir(d)
+        orgdir = os.getcwd()
+        try:
+            with tempfile.TemporaryDirectory(dir=os.path.abspath(f"{self.outdir}")) as d:
+                os.chdir(d)
+                guestmolecule = Molecule(guest, "guest")
+                complexmolecule = Molecule(comp, "complex")
+                setattr(complexmolecule, "constituents", [self.host, guestmolecule])
 
-            guestmolecule = Molecule(guest, "guest")
-            complexmolecule = Molecule(comp, "complex")
-            setattr(complexmolecule, "constituents", [self.host, guestmolecule])
-
-            finalguestmol, guest_en = self.get_opt(guestmolecule, d)
-            finalcomplexmol, complex_en = self.get_opt(complexmolecule, d)
-            os.chdir(orgdir)
-
+                finalguestmol, guest_en = self.get_opt(guestmolecule, d)
+                finalcomplexmol, complex_en = self.get_opt(complexmolecule, d)
+                os.chdir(orgdir)
+                
+        except:
+            os.chidr(orgdir)
+            
         return finalcomplexmol, finalguestmol
             
     def get_opt(self, molecule, min_outdir):
