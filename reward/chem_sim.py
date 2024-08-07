@@ -202,7 +202,7 @@ class ChemSim():
         complex_en = optcomplexmol.GetProp("gaff_en")
         guest_en = optguestmol.GetProp("gaff_en")
         
-        bind_en = float(complex_en) - self.conf["host_en"] - float(guest_en)
+        bind_en = float(complex_en) - float(self.calculator.host_en) - float(guest_en)
 
         optcomplexmol.SetDoubleProp("binding", float(bind_en))
         optcomplexmol.SetDoubleProp("en", float(complex_en))
@@ -222,7 +222,9 @@ if __name__ == "__main__":
     from gaff_opt import AmberCalculator
     
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
-    os.environ["OMP_NUM_THREADS"] = "16"
+    os.environ["OMP_NUM_THREADS"] = "8"
+
+    print("Starting ChemSim binding energy evaluation")
 
     parser = argparse.ArgumentParser(
         description="",
@@ -254,6 +256,7 @@ if __name__ == "__main__":
 
     simulator = ChemSim(conf, hostmol, standalone=True)
     simulator.setup()
+    print("host_en:", simulator.calculator.host_en)
 
     # Wrapper method with callback for parallel processing
     def process_molecule_wrapper(simulator, smi):
@@ -263,7 +266,7 @@ if __name__ == "__main__":
             
             # Try top conformers (number determined by conf["molgen_n_confs"])
             # Set optlevel
-            if conf["molgen_n_confs"] > 1:
+            if conf["docking_n_confs"] > 1:
                 org_optlevel = conf["optlevel"]
                 org_thermo = conf["thermo"]
                 conf["optlevel"] = "loose"

@@ -97,8 +97,9 @@ def edit_resname(pdbfile, *constituents):
         f.writelines(lines)
     return
 
-class Molecule():
-    """ Stores the rdkit mol (which stores properties) as all files relating to the molecule
+class AmberMol():
+    """ Stores the rdkit mol (which stores properties)
+        In addition to objects required through GAFF calculations
     """
 
     def __init__(self, mol, name, chgfile=None, **kwargs):
@@ -106,14 +107,13 @@ class Molecule():
         self.mol = mol
         self.name = name
         self.residue_name = name.upper()[:3]
-        # Dictionary of file format, file location
+        
         self.files = {}
-
         # Add a partial charge file if available
         if chgfile:
             self.files["chgfile"] = chgfile
         
-        # Remaining kwargs define output directories for calculations
+        # Leaving kwargs in for redundancy
         self.__dict__.update(kwargs)
         
 class AmberCalculator():
@@ -125,9 +125,11 @@ class AmberCalculator():
     def __init__(self, conf):
         # Set options from configfile
         self.conf = conf
+
         # Non optional variables assigned as class attributes
         #self.is_solvent = conf["solvent"]
         #self.is_thermo = conf["thermo"]
+        
         self.outdir = os.path.abspath(conf["output_dir"])
         self.hostdir = os.path.abspath(conf["host_dir"])
         self.host_sdf = os.path.abspath(conf["host_sdf"])
@@ -135,223 +137,240 @@ class AmberCalculator():
 
         # Get host energy
         hostmol = Chem.MolFromMolFile(conf["host_sdf"], removeHs=False)
-        self.host = Molecule(hostmol, "cb7")
+        self.host = AmberMol(hostmol, "cb7")
+
         print("optimising host")
-        hostmol, host_en = self.get_opt(self.host, self.hostdir)
+        orgdir = os.getcwd()
+        os.chdir(self.hostdir)
+        hostmol, host_en = self.get_opt(self.host)
+        os.chdir(orgdir)
+        
         self.hostmol = hostmol
         self.host_en = host_en
+
+        self.host.files["prmtop"] = self.hostdir + "/" + self.host.files["prmtop"]
+        self.host.files["lib"] = self.hostdir + "/" + self.host.files["lib"]
+        self.host.files["frcmod"] = self.hostdir + "/" + self.host.files["frcmod"]
+        self.host.files["mol2"] = self.hostdir + "/" + self.host.files["mol2"]
+        
         print("host optimised")
         
     # For gaff, the routine needs to keep the tempfiles of the guest to have the prmtop for the complex
     def get_guest_complex_opt(self, comp, guest):
         """ optimises the guest, keeping the prmtop for the complex, then optimises the complex
         """
-        with tempfile.TemporaryDirectory(dir=os.path.abspath(f"{self.outdir}")) as d:
-            orgdir = os.getcwd()
-            os.chdir(d)
+        with tempfile.TemporaryDirectory(dir=f"{self.outdir}") as d:
+            try:
+                orgdir = os.getcwd()
+                os.chdir(d)
+                guestambermol = AmberMol(guest, "guest")
+                complexambermol = AmberMol(comp, "complex")
+                setattr(complexambermol, "constituents", [self.host, guestambermol])
 
-            guestmolecule = Molecule(guest, "guest")
-            complexmolecule = Molecule(comp, "complex")
-            setattr(complexmolecule, "constituents", [self.host, guestmolecule])
-
-            finalguestmol, guest_en = self.get_opt(guestmolecule, d)
-            finalcomplexmol, complex_en = self.get_opt(complexmolecule, d)
-            os.chdir(orgdir)
-
+                finalguestmol, guest_en = self.get_opt(guestambermol)
+                finalcomplexmol, complex_en = self.get_opt(complexambermol)
+                os.chdir(orgdir)
+                
+            except:
+                os.chdir(orgdir)
+                raise ValueError
+            
         return finalcomplexmol, finalguestmol
             
-    def get_opt(self, molecule, min_outdir):
+    def get_opt(self, ambermol):
         """ Calls methods to optimise mol and retrieve energy
+            This is all done in the same directory for a specific ambermol
         """
-        orgdir = os.getcwd()
-        os.chdir(min_outdir)
-        Chem.MolToMolFile(molecule.mol, f"{molecule.name}.sdf", kekulize=False)
+        Chem.MolToMolFile(ambermol.mol, f"{ambermol.name}.sdf", kekulize=False)
 
-        if Chem.GetFormalCharge(molecule.mol) != 0:
+        if Chem.GetFormalCharge(ambermol.mol) != 0:
             self.conf["chg_method"] = "bcc"
 
-            self.molecule_preprocess(molecule, preprocessing_outdir=min_outdir)
-            self.minimize_sander(molecule, min_outdir=min_outdir, sander_file=self.min_file)
-            self.get_opt_pdb(molecule,  min_outdir=min_outdir)
-            self.get_en_sander(molecule, outfile=molecule.files["min_out_sander"])
-            self.conj_newt_nab(molecule, min_outdir=min_outdir)
+            self.ambermol_preprocess(ambermol)
+            self.minimize_sander(ambermol, sander_file=self.min_file)
+            self.get_opt_pdb(ambermol)
+            self.get_en_sander(ambermol, outfile=ambermol.files["min_out_sander"])
+            self.nmode_nab(ambermol)
             #breakpoint()
-            #self.get_en_conj_newt(molecule, min_outdir=min_outdir)
-            self.get_nmode(molecule, outfile=molecule.files['min_out'])
+            self.get_nmode(ambermol, outfile=ambermol.files['nmode_out'])
 
             self.conf["chg_method"] = "gas"
 
         else:
-            self.molecule_preprocess(molecule, preprocessing_outdir=min_outdir)
-            self.minimize_sander(molecule, min_outdir=min_outdir, sander_file=self.min_file)
-            self.get_opt_pdb(molecule,  min_outdir=min_outdir)
-            self.get_en_sander(molecule, outfile=molecule.files["min_out_sander"])
-            self.conj_newt_nab(molecule, min_outdir=min_outdir)
+            self.ambermol_preprocess(ambermol)
+            self.minimize_sander(ambermol, sander_file=self.min_file)
+            self.get_opt_pdb(ambermol)
+            self.get_en_sander(ambermol, outfile=ambermol.files["min_out_sander"])
+            self.nmode_nab(ambermol)
             #breakpoint()
-            #self.get_en_conj_newt(molecule, outfile=molecule.files['min_out'])
-            self.get_nmode(molecule, outfile=molecule.files['min_out'])
+            self.get_nmode(ambermol, outfile=ambermol.files['nmode_out'])
 
-        en = molecule.en_dict["en"]
+        en = ambermol.en_dict["en"]
+
+        # Get final mol to return to program - ambermol is discarded
+        sp.run(["obabel", "-ipdb", ambermol.files["min_pdb"], "-osdf", "-O", f"{ambermol.name}_min.sdf"], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        finalmol = Chem.MolFromMolFile(f"{ambermol.name}_min.sdf", removeHs=False, sanitize=False)
         
-        # NEED TO HANDLE CHARGE HERE
-        try:
-            sp.run(["obabel", "-ipdb", molecule.files["min_pdb"], "-osdf", "-O", f"{molecule.name}_min.sdf"], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-            finalmol = Chem.MolFromMolFile(f"{molecule.name}_min.sdf", removeHs=False, sanitize=False)
-        except:
-            os.chdir(orgdir)
-            raise ValueError
-
-        for key, val in molecule.en_dict.items():
+        for key, val in ambermol.en_dict.items():
             finalmol.SetProp(f"gaff_{key}", str(val))
-            
-        os.chdir(orgdir)
 
         return finalmol, en
 
     @staticmethod
-    def get_pdb(molecule, preprocessing_outdir):
-        #inp = f"{molecule.fileinput}"
-        molecule.files["pdb"] = f"{preprocessing_outdir}/{molecule.name}.pdb"
-        molecule.files["pdb4amber"] = f"{preprocessing_outdir}/{molecule.name}_4amber.pdb"
-
-        Chem.MolToMolFile(molecule.mol, f"{molecule.name}.sdf")
-        sp.run(["obabel", "-isdf", f"{molecule.name}.sdf", "-opdb", "-O", molecule.files["pdb"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-        sp.run(["pdb4amber", "-i", molecule.files["pdb"], "-o", molecule.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    def get_pdb(ambermol):
+        """ in: rdkit mol
+            out: amber formatted pdb file
+        """
+        ambermol.files["sdf"] = f"{ambermol.name}.sdf"
+        ambermol.files["pdb"] = f"{ambermol.name}.pdb"
+        ambermol.files["pdb4amber"] = f"{ambermol.name}_4amber.pdb"
+        
+        Chem.MolToMolFile(ambermol.mol, ambermol.files["sdf"])
+        sp.run(["obabel", "-isdf", ambermol.files["sdf"], "-opdb", "-O", ambermol.files["pdb"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        sp.run(["pdb4amber", "-i", ambermol.files["pdb"], "-o", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
 
         # Need to edit residue names if the molecule is a complex
-        if hasattr(molecule, "constituents"):
-            edit_resname(molecule.files["pdb4amber"], *molecule.constituents)
+        if hasattr(ambermol, "constituents"):
+            edit_resname(ambermol.files["pdb4amber"], *ambermol.constituents)
         else:
-            edit_resname(molecule.files["pdb4amber"], molecule)
+            edit_resname(ambermol.files["pdb4amber"], ambermol)
 
     @staticmethod
-    def sovlate_packmol_memgen(molecule, preprocessing_outdir):
+    def sovlate_packmol_memgen(ambermol):
         pass
 
     @staticmethod
-    def antechamber(molecule, preprocessing_outdir, conf):
-        molecule.files["mol2"] = f"{preprocessing_outdir}/{molecule.name}.mol2"
+    def antechamber(ambermol, conf):
+        """ in: amber formated pdb
+            out: antechamber made mol2
+
+        """
+        ambermol.files["mol2"] = f"{ambermol.name}.mol2"
                
-        ante_cmd = ["antechamber", "-i", molecule.files["pdb4amber"], "-fi", "pdb", "-fo", "mol2", "-o", molecule.files["mol2"]]
+        ante_cmd = ["antechamber", "-i", ambermol.files["pdb4amber"], "-fi", "pdb", "-fo", "mol2", "-o", ambermol.files["mol2"]]
             
         if conf["chg_method"] == "read":
-            ante_cmd.extend(["-c", "rc", "-cf", molecule.files["chgfile"]]) 
+            ante_cmd.extend(["-c", "rc", "-cf", ambermol.files["chgfile"]]) 
             
         else:
             chg_method = conf["chg_method"]
             ante_cmd.extend(["-c", chg_method])
 
-        ante_cmd.extend(["-nc", str(Chem.GetFormalCharge(molecule.mol)), "-s", "2", "-pf", "yes", "-rn", molecule.residue_name, "-at", "gaff2"])
+        ante_cmd.extend(["-nc", str(Chem.GetFormalCharge(ambermol.mol)), "-s", "2", "-pf", "yes", "-rn", ambermol.residue_name, "-at", "gaff2"])
 
         sp.run(ante_cmd, stdout=sp.DEVNULL)
 
     @staticmethod
-    def parmchk(molecule, preprocessing_outdir):
-        molecule.files["frcmod"] = f"{preprocessing_outdir}/{molecule.name}.frcmod"
+    def parmchk(ambermol):
+        """ in: antechamber formatted mol2 file
+            out: frcmod (modifications to force field parameters)
+        """
+        ambermol.files["frcmod"] = f"{ambermol.name}.frcmod"
     
-        sp.run(["parmchk2", "-i", molecule.files["mol2"], "-f", "mol2", "-o", molecule.files["frcmod"]], stdout=sp.DEVNULL)
+        sp.run(["parmchk2", "-i", ambermol.files["mol2"], "-f", "mol2", "-o", ambermol.files["frcmod"]], stdout=sp.DEVNULL)
 
     @staticmethod
-    def tleap_single(molecule, preprocessing_outdir):
-        molecule.files["lib"] = f"{preprocessing_outdir}/{molecule.name}.lib"
-        molecule.files["prmtop"] = f"{preprocessing_outdir}/{molecule.name}.prmtop"
-        molecule.files["rst7"] = f"{preprocessing_outdir}/{molecule.name}.rst7"
+    def tleap_single(ambermol):
+        """ in: frcmod, mol2
+            out: prmtop and rst7 files for input into sander
+        """
+        ambermol.files["lib"] = f"{ambermol.name}.lib"
+        ambermol.files["prmtop"] = f"{ambermol.name}.prmtop"
+        ambermol.files["rst7"] = f"{ambermol.name}.rst7"
                
         tleap_script = ["source leaprc.gaff2",
-                        f"loadamberparams {molecule.files['frcmod']}",
-                        f"{molecule.residue_name} = loadmol2 {molecule.files['mol2']}",
-                        f"check {molecule.residue_name}",
-                        f"saveoff {molecule.residue_name} {molecule.files['lib']}",
-                        f"saveamberparm {molecule.residue_name} {molecule.files['prmtop']} {molecule.files['rst7']}",
+                        f"loadamberparams {ambermol.files['frcmod']}",
+                        f"{ambermol.residue_name} = loadmol2 {ambermol.files['mol2']}",
+                        f"check {ambermol.residue_name}",
+                        f"saveoff {ambermol.residue_name} {ambermol.files['lib']}",
+                        f"saveamberparm {ambermol.residue_name} {ambermol.files['prmtop']} {ambermol.files['rst7']}",
                         "quit"
                         ]
 
-        with open(f"{preprocessing_outdir}/leap.in", "w") as fw:
+        with open(f"leap.in", "w") as fw:
             for i in tleap_script:
                fw.write(f"{i}\n")
 
-        sp.run(["tleap", "-f", f"{preprocessing_outdir}/leap.in"], stdout=sp.DEVNULL)
-        sp.run(["mv", "leap.log", f"{preprocessing_outdir}"])
+        sp.run(["tleap", "-f", f"leap.in"], stdout=sp.DEVNULL)
 
     @staticmethod
-    def tleap_complex(complexmolecule, preprocessing_outdir, *constituents):
+    def tleap_complex(complexambermol, *constituents):
         # Instead of creating a lib file, load in the lib files from the individual constituents
-        # These should be in the molecule.files dictionary of the complex molecule object
-        complexmolecule.files["mol2"] = f"{preprocessing_outdir}/{complexmolecule.name}.mol2"
-        complexmolecule.files["prmtop"] = f"{preprocessing_outdir}/{complexmolecule.name}.prmtop"
-        complexmolecule.files["rst7"] = f"{preprocessing_outdir}/{complexmolecule.name}.rst7"
-        complexmolecule.residue_name = "COM"
+        # These should be in the ambermol.files dictionary of the complex ambermol object
+        complexambermol.files["mol2"] = f"{complexambermol.name}.mol2"
+        complexambermol.files["prmtop"] = f"{complexambermol.name}.prmtop"
+        complexambermol.files["rst7"] = f"{complexambermol.name}.rst7"
+        complexambermol.residue_name = "COM"
 
         tleap_script = ["source leaprc.gaff2"]
 
-        tleap_script.extend([f"loadoff {molecule.files['lib']}" for molecule in constituents])
-        tleap_script.extend([f"loadamberparams {molecule.files['frcmod']}" for molecule in constituents])
+        tleap_script.extend([f"loadoff {ambermol.files['lib']}" for ambermol in constituents])
+        tleap_script.extend([f"loadamberparams {ambermol.files['frcmod']}" for ambermol in constituents])
 
-        tleap_script.extend([f"{complexmolecule.residue_name} = loadPDB {complexmolecule.files['pdb4amber']}",
-                             f"savemol2 {complexmolecule.residue_name} {complexmolecule.files['mol2']} 1",
-                             f"saveamberparm {complexmolecule.residue_name} {complexmolecule.files['prmtop']} {complexmolecule.files['rst7']}",
+        tleap_script.extend([f"{complexambermol.residue_name} = loadPDB {complexambermol.files['pdb4amber']}",
+                             f"savemol2 {complexambermol.residue_name} {complexambermol.files['mol2']} 1",
+                             f"saveamberparm {complexambermol.residue_name} {complexambermol.files['prmtop']} {complexambermol.files['rst7']}",
                              "quit"
         ])
 
-        with open(f"{preprocessing_outdir}/leap.in", "w") as fw:
+        with open(f"leap.in", "w") as fw:
             for i in tleap_script:
                fw.write(f"{i}\n")
 
-        sp.run(["tleap", "-f", f"{preprocessing_outdir}/leap.in"], stdout=sp.DEVNULL)
-        sp.run(["mv", "leap.log", f"{preprocessing_outdir}"])
+        sp.run(["tleap", "-f", f"leap.in"], stdout=sp.DEVNULL)
 
     @staticmethod
-    def minimize_sander(molecule, min_outdir, sander_file):
-        molecule.files["ncrst"] = f"{min_outdir}/{molecule.name}.ncrst"
-        molecule.files["min_traj"] = f"{min_outdir}/{molecule.name}.traj"
-        molecule.files["min_out_sander"] = f"{min_outdir}/{molecule.name}_sander_min.log"
+    def minimize_sander(ambermol, sander_file):
+        ambermol.files["ncrst"] = f"{ambermol.name}.ncrst"
+        ambermol.files["min_traj"] = f"{ambermol.name}.traj"
+        ambermol.files["min_out_sander"] = f"{ambermol.name}_sander_min.log"
 
         sp.run(["sander", "-O",
                 "-i", sander_file,
-                "-o", molecule.files['min_traj'],
-                "-p", molecule.files['prmtop'],
-                "-c", molecule.files['rst7'],
-                "-r", molecule.files['ncrst']],
-               stdout=open(f"{min_outdir}/min.err", "w"),
-               stderr=open(f"{min_outdir}/min.err", "w"),
+                "-o", ambermol.files['min_traj'],
+                "-p", ambermol.files['prmtop'],
+                "-c", ambermol.files['rst7'],
+                "-r", ambermol.files['ncrst']],
+               stdout=open(f"min.err", "w"),
+               stderr=open(f"min.err", "w"),
         )
-        sp.run(["mv", "mdinfo", molecule.files["min_out_sander"]])
+        sp.run(["mv", "mdinfo", ambermol.files["min_out_sander"]])
 
     @staticmethod
-    def minimize_nab(molecule, min_outdir):
-        molecule.files["ncrst"] = f"{min_outdir}/{molecule.name}.ncrst"
-        molecule.files["min_out"] = f"{min_outdir}/{molecule.name}_min.log"
+    def minimize_nab(ambermol, script):
+        ambermol.files["ncrst"] = f"{ambermol.name}.ncrst"
+        ambermol.files["min_out"] = f"{ambermol.name}_min.log"
 
         # NOTE the outfiles with have nothing in them if there is a segmentation fault during nab script execution
-        sp.run(["./nab_scripts/xmin",
-                molecule.files["prmtop"],
-                molecule.files["rst7"],
-                molecule.files["ncrst"]],
-               stdout=open(molecule.files["min_out"], "w"),
-               stderr=open(molecule.files["min_out"], "w")
+        sp.run([os.path.abspath(script),
+                ambermol.files["prmtop"],
+                ambermol.files["rst7"],
+                ambermol.files["ncrst"]],
+               stdout=open(ambermol.files["min_out"], "w"),
+               stderr=open(ambermol.files["min_out"], "w")
         )
 
     @staticmethod
-    def nmode_nab(molecule, nmode_outdir):
+    def nmode_nab_legacy(ambermol, script):
         # Calculates normal modes from the nmode nab script
-        molecule.files["nmode_out"] = f"{nmode_outdir}/{molecule.name}_nmode.log"
+        ambermol.files["nmode_out"] = f"{ambermol.name}_nmode.log"
 
         sp.run(["./nab_scripts/nmode",
-                molecule.files["prmtop"],
-                molecule.files["ncrst"]],
-               stdout=open(molecule.files["nmode_out"], "w"),
-               stderr=open(molecule.files["nmode_out"], "w")
+                ambermol.files["prmtop"],
+                ambermol.files["ncrst"]],
+               stdout=open(ambermol.files["nmode_out"], "w"),
+               stderr=open(ambermol.files["nmode_out"], "w")
         )
 
         # Cleanup of undeeded file
         sp.run(["rm", "vecs"])
 
     @staticmethod
-    def conj_newt_nab(molecule, min_outdir):
+    def nmode_nab(ambermol):
         # Runs conjugate gradient descent minimisation, followed by newton raphson minimisation, followed by nmode
         # Uses a nab script, requires original nab compiler. Am planning to get a nabc script working if possible
-        molecule.files["min_out"] = f"{min_outdir}/{molecule.name}_min.log"
-        molecule.files["min_pdb"] = f"{min_outdir}/{molecule.name}_min.pdb"
+        ambermol.files["nmode_out"] = f"{ambermol.name}_nmode.log"
+        ambermol.files["min_pdb"] = f"{ambermol.name}_min.pdb"
         
         nab_script = [
             'molecule m;',
@@ -380,48 +399,47 @@ class AmberCalculator():
             'nmode( x, 3*m.natoms, mme2, 0, 0, 0.0, 0.0, 0);'
         ]
         
-        nab_script = [x.format(molecule.files["min_pdb"], molecule.files["prmtop"], molecule.files["min_pdb"])+'\n' for x in nab_script]
+        nab_script = [x.format(ambermol.files["min_pdb"], ambermol.files["prmtop"], ambermol.files["min_pdb"])+'\n' for x in nab_script]
         
         # Generate nab script (for some reason have to hard code argv, another thing to try and fix
-        with open(f"{min_outdir}/min_prog.nab", 'w') as w:
+        with open(f"min_prog.nab", 'w') as w:
             w.writelines(nab_script)
         
         # Compile nab script (ensure the original nab compiler is in path)
-        sp.run(["nab", f"{min_outdir}/min_prog.nab", "-o", f"{min_outdir}/min_prog"])
+        sp.run(["nab", f"min_prog.nab", "-o", f"min_prog"])
 
         # Run nab script
-        sp.run([f"{min_outdir}/min_prog"],
-               stdout=open(molecule.files["min_out"], "w"),
-               stderr=open(molecule.files["min_out"], "w")
+        sp.run([f"min_prog"],
+               stdout=open(ambermol.files["nmode_out"], "w"),
+               stderr=open(ambermol.files["nmode_out"], "w")
         )
         
         return
 
     # CLASS METHODS FOR AMBER CALCULATIONS
-    def molecule_preprocess(self, molecule, preprocessing_outdir):
+    def ambermol_preprocess(self, ambermol):
 
-        # Minimsise single molecule
-        if len(Chem.GetMolFrags(molecule.mol, asMols=True)) == 1:
-            AmberCalculator.get_pdb(molecule, preprocessing_outdir)
-            AmberCalculator.antechamber(molecule, preprocessing_outdir, self.conf)
-            AmberCalculator.parmchk(molecule, preprocessing_outdir)
-            AmberCalculator.tleap_single(molecule, preprocessing_outdir)
+        # Minimsise single ambermol
+        if len(Chem.GetMolFrags(ambermol.mol, asMols=True)) == 1:
+            AmberCalculator.get_pdb(ambermol)
+            AmberCalculator.antechamber(ambermol, self.conf)
+            AmberCalculator.parmchk(ambermol)
+            AmberCalculator.tleap_single(ambermol)
 
         # Minmise a complex of moecules that are not bound covalently
-        if len(Chem.GetMolFrags(molecule.mol, asMols=True)) > 1:
-            AmberCalculator.get_pdb(molecule, preprocessing_outdir)
-            AmberCalculator.tleap_complex(molecule, preprocessing_outdir, *molecule.constituents)
+        if len(Chem.GetMolFrags(ambermol.mol, asMols=True)) > 1:
+            AmberCalculator.get_pdb(ambermol)
+            AmberCalculator.tleap_complex(ambermol, *ambermol.constituents)
 
     # CLASS METHODS FOR RETRIEVAL OF OUTPUTS
-    def get_opt_pdb(self, molecule, min_outdir):
-        molecule.files["min_pdb"] = f"{min_outdir}/{molecule.name}_min.pdb"
+    def get_opt_pdb(self, ambermol):
+        ambermol.files["min_pdb"] = f"{ambermol.name}_min.pdb"
         
-        try:
-            sp.run(["ambpdb", "-p", molecule.files['prmtop'], "-c", molecule.files["ncrst"]], stdout=open(molecule.files["min_pdb"], "w"))
-        except FileNotFoundError:
-            print("no minimisation output file")
-
-    def get_en_sander(self, molecule, outfile):
+        sp.run(["ambpdb", "-p", ambermol.files['prmtop'], "-c", ambermol.files["ncrst"]], stdout=open(ambermol.files["min_pdb"], "w"))
+        
+    def get_en_sander(self, ambermol, outfile):
+        """ Retrieves energy from the "mdinfo" file output by sander (this should be renamed by now)
+        """
 
         min_out = [i.split() for i in open(outfile, "r")]
         en_dict = {}
@@ -437,9 +455,11 @@ class AmberCalculator():
         en_dict["Ecoul_14"] = float(min_out[7][7]) # topological 1-4 coulomb (atoms separated by 3 bonds)
         en_dict["Enp"] = float(min_out[8][2]) # Non polar solvent energy, associate with surface area in contact with solvent
 
-        setattr(molecule, "en_dict", en_dict)
+        setattr(ambermol, "en_dict", en_dict)
 
-    def get_en_nab(self, molecule, outfile):
+    def get_en_nab(self, ambermol, outfile):
+        """ Energy from nab xmin script
+        """
 
         min_out = [i.split() for i in open(outfile, "r")]
         en_dict = {}
@@ -466,13 +486,13 @@ class AmberCalculator():
             if i[0] == "Total:":
                 en_dict["en"] = float(i[1])
                 
-        setattr(molecule, "en_dict", en_dict)
+        setattr(ambermol, "en_dict", en_dict)
 
         return
 
-    def get_en_conj_newt(self, molecule, outfile):
-        # Gets energy from the conjugate gradient + newton raphson routine
-        # Also retrieves normal modes
+    def get_en_conj_newt(self, ambermol, outfile):
+        """ Gets energy AND NORMAL MODES from the conjugate gradient + newton raphson routine
+        """
         min_out = reversed([i.split() for i in open(outfile, "r") if i])
 
         # Minimised energies
@@ -510,7 +530,7 @@ class AmberCalculator():
         # Valid frequencies will depend on number of degrees of freedom lost whether it is a complex, 6 for guest
         valid_freqs = 6
         try:
-            extra_frags = GetMolFrags(molecule.mol, asMols=True) - 1
+            extra_frags = GetMolFrags(ambermol.mol, asMols=True) - 1
         except:
             extra_frags = 0
         
@@ -535,12 +555,13 @@ class AmberCalculator():
         
         en_dict["Ecorr"]  = en_dict["en"] - en_dict["Esrrho"]
 
-        setattr(molecule, "en_dict", en_dict)
+        setattr(ambermol, "en_dict", en_dict)
             
         return
 
-    def get_nmode(self, molecule, outfile):
-        # Retrieves normal modes from the nmode calculation and calculates configurational entropy contribution to energy
+    def get_nmode(self, ambermol, outfile):
+        """ Retrieves only normal modes from output of a nab nmode calculation
+        """
         min_out = [i.split() for i in open(outfile, "r")]
         
         # Get vibrational mode frequencies
@@ -564,7 +585,7 @@ class AmberCalculator():
         # Valid frequencies will depend on number of degrees of freedom lost whether it is a complex, 6 for guest
         valid_freqs = 6
         try:
-            extra_frags = GetMolFrags(molecule.mol, asMols=True) - 1
+            extra_frags = GetMolFrags(ambermol.mol, asMols=True) - 1
         except:
             extra_frags = 0
         
@@ -585,9 +606,9 @@ class AmberCalculator():
         
         #  kcal/mol
         Srrho = Srrho/4.184*T/1000
-        molecule.en_dict["Esrrho"] = Srrho
+        ambermol.en_dict["Esrrho"] = Srrho
 
-        molecule.en_dict["Ecorr"]  = molecule.en_dict["en"] - molecule.en_dict["Esrrho"]
+        ambermol.en_dict["Ecorr"]  = ambermol.en_dict["en"] - ambermol.en_dict["Esrrho"]
 
         return
 
