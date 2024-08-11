@@ -410,7 +410,7 @@ class AmberCalculator():
         sp.run(["nab", f"min_prog.nab", "-o", f"min_prog"])
 
         # Run nab script
-        sp.run([f"min_prog"],
+        sp.run([f"./min_prog"],
                stdout=open(ambermol.files["nmode_out"], "w"),
                stderr=open(ambermol.files["nmode_out"], "w")
         )
