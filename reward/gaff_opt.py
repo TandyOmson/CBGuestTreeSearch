@@ -147,7 +147,8 @@ class AmberCalculator():
         
         self.hostmol = hostmol
         self.host_en = host_en
-
+        self.host_en_dict = {propname : hostmol.GetProp(propname) for propname in hostmol.GetPropNames()}
+        
         self.host.files["prmtop"] = self.hostdir + "/" + self.host.files["prmtop"]
         self.host.files["lib"] = self.hostdir + "/" + self.host.files["lib"]
         self.host.files["frcmod"] = self.hostdir + "/" + self.host.files["frcmod"]
@@ -184,7 +185,7 @@ class AmberCalculator():
         Chem.MolToMolFile(ambermol.mol, f"{ambermol.name}.sdf", kekulize=False)
 
         if Chem.GetFormalCharge(ambermol.mol) != 0:
-            self.conf["chg_method"] = "bcc"
+            self.conf["chg_method"] = "abcg2"
 
             self.ambermol_preprocess(ambermol)
             self.minimize_sander(ambermol, sander_file=self.min_file)
@@ -608,7 +609,7 @@ class AmberCalculator():
         Srrho = Srrho/4.184*T/1000
         ambermol.en_dict["Esrrho"] = Srrho
 
-        ambermol.en_dict["Ecorr"]  = ambermol.en_dict["en"] - ambermol.en_dict["Esrrho"]
+        ambermol.en_dict["Ecorr"]  = ambermol.en_dict["en"] + ambermol.en_dict["Esrrho"]
 
         return
 
@@ -645,7 +646,7 @@ if __name__ == "__main__":
         try:
             # Gasteiger charges assume total charge is 0, need to switch to a slower method
             if Chem.GetFormalCharge(complexmol) != 0:
-                gaff_conf["chg_method"] = "bcc"
+                gaff_conf["chg_method"] = "abcg2"
                 
             finalcomplex, finalguests = gaff_calc.get_guest_complex_opt(complexmol, guestmol)
 

@@ -65,11 +65,13 @@ class ChemSim():
                 os.mkdir(self.outdir)
             except:
                 print("WARNING - output directory already exists")
-        
-        self.outfile = os.path.join(self.outdir, "chem_sim.pkl")
+
+        self.bindingfile = os.path.join(self.outdir, "binding_sim.pkl")
+        self.complexfile = os.path.join(self.outdir, "complex_sim.pkl")
         self.guestfile = os.path.join(self.outdir, "guest_sim.pkl")
-        self.df = pd.DataFrame(columns=self.proplist.append("binding_mol"))
-        self.guestdf = pd.DataFrame(columns=self.proplist.append("binding_mol"))
+        self.complexdf = pd.DataFrame(columns=self.proplist)
+        self.guestdf = pd.DataFrame(columns=self.proplist)
+        self.bindingdf = pd.DataFrame(columns=self.proplist)
 
         # Set the paths of the host_pdbqt and host_sdf to absolute paths inside the scope of the object
         self.conf["host_pdbqt"] = os.path.realpath(self.conf["host_pdbqt"])
@@ -81,15 +83,26 @@ class ChemSim():
             Properties are written to the propertymol based on the config
         """
         moldict = {}
+        bindingdict = {}
         for i in propertymol.GetPropNames():
-            try:
-                moldict[i] = float(propertymol.GetProp(i))
-            except:
-                moldict[i] = propertymol.GetProp(i)
+            if i.split("_")[0] == "binding":
+                try:
+                    bindingdict[i] = float(propertymol.GetProp(i))
+                except:
+                    bindingdict[i] = propertymol.GetProp(i)
+            else:
+                try:
+                    moldict[i] = float(propertymol.GetProp(i))
+                except:
+                    moldict[i] = propertymol.GetProp(i)
+
+        # Add smiles into bindingdict
+        bindingdict["smiles"] = propertymol.GetProp("smiles")
             
         # Clear properties in molecule object to save space
         for i in propertymol.GetPropNames():
             propertymol.ClearProp(i)
+            
         # Retain molecule structure
         moldict["mol"] = propertymol
 
@@ -99,10 +112,16 @@ class ChemSim():
             self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
             self.guestdf.to_pickle(self.guestfile)
         else:
-            idx = len(self.df) + 1
+            idx = len(self.complexdf) + 1
             df_mol = pd.DataFrame(moldict, index=[idx])
-            self.df = pd.concat([self.df, df_mol], axis=0)
-            self.df.to_pickle(self.outfile)
+            self.complexdf = pd.concat([self.complexdf, df_mol], axis=0)
+            self.complexdf.to_pickle(self.complexfile)
+
+            idx = len(self.bindingdf) + 1
+            df_mol = pd.DataFrame(bindingdict, index=[idx])
+            self.bindingdf = pd.concat([self.bindingdf, df_mol], axis=0)
+            self.bindingdf.to_pickle(self.bindingfile)
+            
 
     def get_confs(self, mol):
         """ Generates conformers of a molecule
@@ -199,14 +218,23 @@ class ChemSim():
             optcomplexmol.SetProp("bad_length", "True")
         """
 
-        complex_en = optcomplexmol.GetProp("gaff_en")
-        guest_en = optguestmol.GetProp("gaff_en")
-        
-        bind_en = float(complex_en) - float(self.calculator.host_en) - float(guest_en)
 
-        optcomplexmol.SetDoubleProp("binding", float(bind_en))
-        optcomplexmol.SetDoubleProp("en", float(complex_en))
-        optguestmol.SetDoubleProp("en", float(guest_en))
+        # Get decomposition of binding energies:
+        complex_en_dict = {propname : optcomplexmol.GetProp(propname) for propname in optcomplexmol.GetPropNames()}
+        guest_en_dict = {propname : optguestmol.GetProp(propname) for propname in optguestmol.GetPropNames()}
+
+        binding_en_dict = {f"binding_{key_comp}" : float(val_comp) - float(val_host) - float(val_guest) for (key_comp, val_comp), (key_host, val_host), (key_guest, val_guest) in zip(complex_en_dict.items(), self.calculator.host_en_dict.items(), guest_en_dict.items())}
+
+        for key, val in binding_en_dict.items():
+            optcomplexmol.SetDoubleProp(key, val)
+
+        # Set en for MCTS
+        if conf["thermo"]:
+            en = [val for key, val in binding_en_dict.items() if key.split("_")[-1] == "Ecorr" ][0]
+        else:
+            en = [val for key, val in binding_en_dict.items() if key.split("_")[-1] == "en" ][0]
+            
+        optcomplexmol.SetDoubleProp("en", en)
 
         return get_property_mol(optcomplexmol), get_property_mol(optguestmol)
     
@@ -256,7 +284,6 @@ if __name__ == "__main__":
 
     simulator = ChemSim(conf, hostmol, standalone=True)
     simulator.setup()
-    print("host_en:", simulator.calculator.host_en)
 
     # Wrapper method with callback for parallel processing
     def process_molecule_wrapper(simulator, smi):
