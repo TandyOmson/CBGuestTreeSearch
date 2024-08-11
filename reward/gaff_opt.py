@@ -33,9 +33,7 @@ def edit_resname(pdbfile, *constituents):
     atom_counts = defaultdict(int)
 
     # Remove MASTER, CONECT records and comments
-    for count, line in enumerate(lines):
-        if line.split(" ")[0] != "HETATM" and line.split(" ")[0] != "END" and line.split(" ")[0] != "TER":
-            lines.pop(count)
+    lines = [line for line in lines if line.startswith(("HETATM", "END", "TER"))]
     
     # Get the number of digits in the number of atoms to assign whitespace after atom name
     for line in lines:
@@ -232,7 +230,7 @@ class AmberCalculator():
         ambermol.files["pdb4amber"] = f"{ambermol.name}_4amber.pdb"
         
         Chem.MolToMolFile(ambermol.mol, ambermol.files["sdf"])
-        sp.run(["obabel", "-isdf", ambermol.files["sdf"], "-opdb", "-O", ambermol.files["pdb"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        sp.run(["obabel", "-isdf", ambermol.files["sdf"], "-opdb", "-O", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
         #sp.run(["pdb4amber", "-i", ambermol.files["pdb"], "-o", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
 
         # Need to edit residue names if the molecule is a complex
