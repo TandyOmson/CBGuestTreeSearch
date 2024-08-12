@@ -188,7 +188,7 @@ class AmberCalculator():
         Chem.MolToMolFile(ambermol.mol, f"{ambermol.name}.sdf", kekulize=False)
 
         if Chem.GetFormalCharge(ambermol.mol) != 0:
-            self.conf["chg_method"] = "abcg2"
+            self.conf["chg_method"] = "bcc"
 
             self.ambermol_preprocess(ambermol)
             self.minimize_sander(ambermol, sander_file=self.min_file)
@@ -649,7 +649,7 @@ if __name__ == "__main__":
         try:
             # Gasteiger charges assume total charge is 0, need to switch to a slower method
             if Chem.GetFormalCharge(complexmol) != 0:
-                gaff_conf["chg_method"] = "abcg2"
+                gaff_conf["chg_method"] = "bcc"
                 
             finalcomplex, finalguests = gaff_calc.get_guest_complex_opt(complexmol, guestmol)
 
