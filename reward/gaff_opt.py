@@ -3,6 +3,8 @@
     - output are always files, which can be read by supplementary functions
 """
 import subprocess as sp
+import contextlib
+import shutil
 import tempfile
 import traceback
 from collections import defaultdict
@@ -13,6 +15,17 @@ from rdkit import Chem
 
 # TEMP FOR TESTING
 from reward_utils import get_property_mol
+
+@contextlib.contextmanager
+def my_temp_dir(parentdir, delete=False):
+    # Later python versions have a delete option on tempdir for debugging, creating one myself
+    temp_dir = tempfile.mkdtemp(dir=parentdir)
+    try:
+        yield temp_dir
+    finally:
+        if delete:
+            shutil.rmtree(temp_dir)
+    
 
 def nonblank_lines(f, reverse=False):
     if not reverse:
@@ -163,7 +176,7 @@ class AmberCalculator():
     def get_guest_complex_opt(self, comp, guest):
         """ optimises the guest, keeping the prmtop for the complex, then optimises the complex
         """
-        with tempfile.TemporaryDirectory(dir=f"{self.outdir}") as d:
+        with my_temp_dir(parentdir=f"{self.outdir}", delete=False) as d:
             try:
                 orgdir = os.getcwd()
                 os.chdir(d)
@@ -188,7 +201,7 @@ class AmberCalculator():
         Chem.MolToMolFile(ambermol.mol, f"{ambermol.name}.sdf", kekulize=False)
 
         if Chem.GetFormalCharge(ambermol.mol) != 0:
-            self.conf["chg_method"] = "bcc"
+            self.conf["chg_method"] = "abcg2"
 
             self.ambermol_preprocess(ambermol)
             self.minimize_sander(ambermol, sander_file=self.min_file)
@@ -649,7 +662,7 @@ if __name__ == "__main__":
         try:
             # Gasteiger charges assume total charge is 0, need to switch to a slower method
             if Chem.GetFormalCharge(complexmol) != 0:
-                gaff_conf["chg_method"] = "bcc"
+                gaff_conf["chg_method"] = "abcg2"
                 
             finalcomplex, finalguests = gaff_calc.get_guest_complex_opt(complexmol, guestmol)
 
