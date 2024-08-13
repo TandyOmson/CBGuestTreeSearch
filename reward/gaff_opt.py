@@ -342,15 +342,30 @@ class AmberCalculator():
         ambermol.files["min_traj"] = f"{ambermol.name}.traj"
         ambermol.files["min_out_sander"] = f"{ambermol.name}_sander_min.log"
 
-        sp.run(["sander", "-O",
-                "-i", sander_file,
-                "-o", ambermol.files['min_traj'],
-                "-p", ambermol.files['prmtop'],
-                "-c", ambermol.files['rst7'],
-                "-r", ambermol.files['ncrst']],
-               stdout=open(f"min.err", "w"),
-               stderr=open(f"min.err", "w"),
-        )
+        threads = 5
+        
+        if threads > 1:
+            sp.run(["mpirun", "-np", threads,
+                    "sander.MPI", "-O",
+                    "-i", sander_file,
+                    "-o", ambermol.files['min_traj'],
+                    "-p", ambermol.files['prmtop'],
+                    "-c", ambermol.files['rst7'],
+                    "-r", ambermol.files['ncrst']],
+                   stdout=open(f"min.err", "w"),
+                   stderr=open(f"min.err", "w"),
+            )
+        else:
+            sp.run(["sander", "-O",
+                    "-i", sander_file,
+                    "-o", ambermol.files['min_traj'],
+                    "-p", ambermol.files['prmtop'],
+                    "-c", ambermol.files['rst7'],
+                    "-r", ambermol.files['ncrst']],
+                   stdout=open(f"min.err", "w"),
+                   stderr=open(f"min.err", "w"),
+            )
+        
         sp.run(["mv", "mdinfo", ambermol.files["min_out_sander"]])
 
     @staticmethod

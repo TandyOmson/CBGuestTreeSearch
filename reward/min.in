@@ -1,18 +1,17 @@
-Initial minimisation of CB7
- &cntrl
-  imin=1,
-  maxcyc=20000, ncyc=1000, drms=0.0000001,
-  cut=99,
-  rgbmax=99, 
-  igb=1,
-  gbsa=1,
-  dielc=1.0,
-  ntmin=3,
-  ntb=0,
- &end
- &lmod
+Optimisation
+&cntrl
+ imin=1,
+ maxcyc=5000, ncyc=100, drms=0.0000001,
+ cut=99,
+ rgbmax=99, 
+ igb=1,
+ gbsa=1,
+ dielc=1.0,
+ ntmin=3,
+ ntb=0,
+/
+&lmod
  lbfgs_memory_depth=5
  xmin_method="TNCG"
  xmin_verbosity=2
- &end
- 
+/

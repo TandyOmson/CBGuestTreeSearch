@@ -66,7 +66,7 @@ class ChemSim():
             except:
                 print("WARNING - output directory already exists")
 
-        self.bindingfile = os.path.join(self.outdir, "binding_sim.pkl")
+        self.bindingfile = os.path.join(self.outdir, "binding_sim.csv")
         self.complexfile = os.path.join(self.outdir, "complex_sim.pkl")
         self.guestfile = os.path.join(self.outdir, "guest_sim.pkl")
         self.complexdf = pd.DataFrame(columns=self.proplist)
@@ -120,7 +120,7 @@ class ChemSim():
             idx = len(self.bindingdf) + 1
             df_mol = pd.DataFrame(bindingdict, index=[idx])
             self.bindingdf = pd.concat([self.bindingdf, df_mol], axis=0)
-            self.bindingdf.to_pickle(self.bindingfile)
+            self.bindingdf.to_csv(self.bindingfile)
             
 
     def get_confs(self, mol):
