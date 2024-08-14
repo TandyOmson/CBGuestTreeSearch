@@ -1,6 +1,6 @@
 output_dir: result/testing
 
-n_jobs: 8
+n_jobs: 5
 
 # Docking Settings
 host_dir: reward/data/gaff_host
@@ -16,8 +16,8 @@ cavity_atoms_threshold: 6
 
 # Required settings if using Vina docking for large molecules
 vina_large_guest: True
-exhaustiveness: 32
-n_poses: 5
+exhaustiveness: 8
+n_poses: 10
 min_rmsd: 3.0
 
 # Chemistry Simulator Settings

@@ -158,7 +158,8 @@ class ChemSim():
         # 2. Dock the best conformer
         #print("STATUS - docking")
         dock = DockLigand(self.hostmol, self.conf)
-        
+
+        """
         if not is_small:
             if self.conf["vina_large_guest"]:
                 try:
@@ -180,6 +181,8 @@ class ChemSim():
                         complexmols, scores = dock.vina_dock(guestmol)
                     except Exception as e:
                         raise ChemSimError("Error in docking of small guest") from e
+        """
+        complexmols, scores = dock.vina_dock(guestmol)
 
         try:
             complexmol = dock.get_best_pose(complexmols, scores)

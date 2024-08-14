@@ -345,15 +345,15 @@ class AmberCalculator():
         threads = 5
         
         if threads > 1:
-            sp.run(["mpirun", "-np", threads,
+            sp.run(["mpirun", "-np", f"{threads}",
                     "sander.MPI", "-O",
                     "-i", sander_file,
                     "-o", ambermol.files['min_traj'],
                     "-p", ambermol.files['prmtop'],
                     "-c", ambermol.files['rst7'],
                     "-r", ambermol.files['ncrst']],
-                   stdout=open(f"min.err", "w"),
-                   stderr=open(f"min.err", "w"),
+                   stdout=open("min.err", "w"),
+                   stderr=open("min.err", "w"),
             )
         else:
             sp.run(["sander", "-O",
@@ -362,8 +362,8 @@ class AmberCalculator():
                     "-p", ambermol.files['prmtop'],
                     "-c", ambermol.files['rst7'],
                     "-r", ambermol.files['ncrst']],
-                   stdout=open(f"min.err", "w"),
-                   stderr=open(f"min.err", "w"),
+                   stdout=open("min.err", "w"),
+                   stderr=open("min.err", "w"),
             )
         
         sp.run(["mv", "mdinfo", ambermol.files["min_out_sander"]])
