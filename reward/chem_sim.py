@@ -159,7 +159,6 @@ class ChemSim():
         #print("STATUS - docking")
         dock = DockLigand(self.hostmol, self.conf)
 
-        """
         if not is_small:
             if self.conf["vina_large_guest"]:
                 try:
@@ -181,8 +180,6 @@ class ChemSim():
                         complexmols, scores = dock.vina_dock(guestmol)
                     except Exception as e:
                         raise ChemSimError("Error in docking of small guest") from e
-        """
-        complexmols, scores = dock.vina_dock(guestmol)
 
         try:
             complexmol = dock.get_best_pose(complexmols, scores)
@@ -232,7 +229,7 @@ class ChemSim():
             optcomplexmol.SetDoubleProp(key, val)
 
         # Set en for MCTS
-        if conf["thermo"]:
+        if self.conf["thermo"]:
             en = [val for key, val in binding_en_dict.items() if key.split("_")[-1] == "Ecorr" ][0]
         else:
             en = [val for key, val in binding_en_dict.items() if key.split("_")[-1] == "en" ][0]

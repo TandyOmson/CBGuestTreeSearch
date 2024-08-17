@@ -14,7 +14,7 @@ import math
 from rdkit import Chem
 
 # TEMP FOR TESTING
-from reward_utils import get_property_mol
+#from reward_utils import get_property_mol
 
 @contextlib.contextmanager
 def my_temp_dir(parentdir, delete=False):
@@ -342,7 +342,7 @@ class AmberCalculator():
         ambermol.files["min_traj"] = f"{ambermol.name}.traj"
         ambermol.files["min_out_sander"] = f"{ambermol.name}_sander_min.log"
 
-        threads = 5
+        threads = 4
         
         if threads > 1:
             sp.run(["mpirun", "-np", f"{threads}",

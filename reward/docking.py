@@ -9,7 +9,7 @@ import os
 import tempfile
 from sklearn.decomposition import PCA
 
-from reward_utils import is_exo
+from .reward_utils import is_exo
 
 # Define class for docking
 class DockLigand():

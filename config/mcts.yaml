@@ -74,21 +74,28 @@ leaf_parallel_num: 1
 # Chemistry Simulator Settings
 
 # Docking Settings
+host_dir: reward/data/gaff_host
 host_pdbqt: reward/data/host_aligned.pdbqt
 host_sdf: reward/data/host_aligned.sdf
-host_en: -157089.5126460131
-molgen_n_confs: 3
+molgen_n_confs: 1
+docking_n_confs: 1
 molgen_rmsd_threshold: 0.35
-vina_num_rotations: 4
-vina_num_translations: 4
+vina_num_rotations: 5
+vina_num_translations: 5
 centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
 
+# xtb only
+host_en: -157089.5126460131
+
 # Required settings if using Vina docking for large molecules
 vina_large_guest: True
-exhaustiveness: 32
-n_poses: 5
+exhaustiveness: 8
+n_poses: 10
 min_rmsd: 3.0
+
+# Chemistry Simulator Settings
+simulator: gaff
 
 # xtb settings
 thermo: True
@@ -96,3 +103,7 @@ solvent: True
 optlevel: normal
 additional_ens: True
 partial_charges: False
+
+# gaff settings
+chg_method: gas
+min_file: reward/min.in

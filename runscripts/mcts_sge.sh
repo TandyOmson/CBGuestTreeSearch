@@ -4,13 +4,20 @@
 #$ -l h_rt=48:0:0
 #$ -l mem=4G
 #$ -pe smp 40
-#$ -N mcts
+#$ -P Gold
+#$ -A UCL_chemM_Lee
 
-cd ./../
+module unload gcc-libs
+module load openblas/0.3.13-serial/gnu-10.2.0
 
 module load python/miniconda3/4.10.3
 source $UCL_CONDA_PATH/etc/profile.d/conda.sh
-conda activate cbguest
+conda activate chemts2
+
+module append-path PATH /home/uccaat2/nabc/bin
+module append-path PATH /shared/ucl/apps/amber-gcc/amber-20/bin
+
+cd /home/uccaat2/Scratch/mcts_gaff
 
 echo "Job start"
 
