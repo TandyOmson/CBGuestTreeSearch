@@ -68,6 +68,7 @@ class CBDock_reward(Reward):
                 guestmolout.SetProp("smiles", smi)
 
                 # If post filters were triggered, set a bad score
+                """
                 if molout.HasProp("isExo") == 1:
                     molout.SetDoubleProp("en", 25.0)
 
@@ -79,6 +80,7 @@ class CBDock_reward(Reward):
 
                 if molout.HasProp("bad_length") == 1:
                     molout.SetDoubleProp("en", 25.0)
+                """
 
                 # Required as flush wipes mol properties
                 en = float(molout.GetProp("en"))
