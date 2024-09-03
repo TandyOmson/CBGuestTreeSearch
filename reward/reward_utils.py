@@ -69,22 +69,20 @@ def is_small_cylinder(guestmol, cutoff_r=3.65, cutoff_h=4.55):
     else:
         return False
     
-def is_exo(complexmol, hostmol, conf, confId=-1):
+def is_exo(mol, confId=-1):
     """ Checks for exo complex
     """
-    if not conf["centroid_diff_threshold"]:
-        centroiddiffthreshold=4
-        cavityatomsthreshold=6
-    else: 
-        centroiddiffthreshold = conf["centroid_diff_threshold"]
-        cavityatomsthreshold = conf["cavity_atoms_threshold"]
+    centroiddiffthreshold=4
+    cavityatomsthreshold=6
+    
+    hostmol = Chem.GetMolFrags(mol, asMols=True)[0]
 
-    Chem.RemoveHs(complexmol)
+    Chem.RemoveHs(mol)
     Chem.RemoveHs(hostmol)
 
     # Separate host and guest, get their coordinates
-    guest_coords = np.array([complexmol.GetConformer(confId).GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(complexmol.GetAtoms()) if count >= hostmol.GetNumAtoms()])
-    host_coords = np.array([complexmol.GetConformer(confId).GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(complexmol.GetAtoms()) if not count >= hostmol.GetNumAtoms()])
+    guest_coords = np.array([mol.GetConformer().GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(mol.GetAtoms()) if count >= hostmol.GetNumAtoms()])
+    host_coords = np.array([mol.GetConformer().GetAtomPosition(atm.GetIdx()) for count, atm in enumerate(mol.GetAtoms()) if not count >= hostmol.GetNumAtoms()])
 
     # Get host and guest centroid
     guest_centroid = np.array(guest_coords).mean(axis=0)
@@ -96,7 +94,7 @@ def is_exo(complexmol, hostmol, conf, confId=-1):
     # Delauny defines the convex hull of the host atoms
     # Delauny is a triangulation such that none of the host atoms are inside the circumsphere of any tetrahedron in the traingulation
     hull = Delaunay(host_coords)
-
+    
     # Calculate number of atoms in cavity
     cavity_atoms = 0
     for atm in guest_coords:

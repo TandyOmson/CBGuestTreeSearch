@@ -13,8 +13,7 @@ import math
 
 from rdkit import Chem
 
-# TEMP FOR TESTING
-#from reward_utils import get_property_mol
+"""HELPER FUNCTIONS FOR GAFF OPTIMISATION METHODS"""
 
 @contextlib.contextmanager
 def my_temp_dir(parentdir, delete=False):
