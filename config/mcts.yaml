@@ -70,8 +70,6 @@ triplebond_filter:
 leaf_parallel: True
 # Number of leaves simultaneously
 leaf_parallel_num: 2
-# Number of threads for sander
-gaff_n_threads: 4
 
 # Chemistry Simulator Settings
 
@@ -109,3 +107,5 @@ partial_charges: False
 # gaff settings
 chg_method: gas
 min_file: reward/min.in
+gaff_n_threads: 4
+

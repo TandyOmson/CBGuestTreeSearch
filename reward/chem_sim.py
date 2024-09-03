@@ -26,7 +26,7 @@ if __name__ != "__main__":
     from reward.smi2sdf import process_smi
     from reward.reward_utils import fix_charge, is_small_cylinder, is_exo, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
     from reward.docking import DockLigand
-    from reward.xtb_opt import xtbEnergy
+    from reward.xtb_opt import xtbCalculator
     from reward.gaff_opt import AmberCalculator
 
 # Class for diagnostic error handling
@@ -54,7 +54,12 @@ class ChemSim():
         # SET AS STANDALONE CHEMISTRY SIMULATOR
         self.is_standalone = kwargs.get("standalone", False)
         self.proplist = []
-        self.calculator = AmberCalculator(conf)
+        # Set chemistry simulator, GAFF is default
+        if conf["simulator"] == "xtb":
+            self.calculator = xtbCalculator(conf)
+        else:
+            self.calculator = AmberCalculator(conf)
+        
         self.docking = DockLigand(conf)
 
     def setup(self):
@@ -217,7 +222,7 @@ if __name__ == "__main__":
     from smi2sdf import process_smi
     from docking import DockLigand
     from reward_utils import fix_charge, is_small_cylinder, is_exo, get_incorrect_bond_angle, get_incorrect_bond_length, covalent_CB, get_property_mol
-    from xtb_opt import xtbEnergy
+    from xtb_opt import xtbCalculator
     from gaff_opt import AmberCalculator
     
     print("Starting ChemSim binding energy evaluation")

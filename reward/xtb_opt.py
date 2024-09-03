@@ -5,66 +5,129 @@ import subprocess as sp
 from glob import glob
 from shutil import rmtree
 import tempfile
+import contextlib
 
-class xtbEnergy():
+""" HELPER FUNCTIONS FOR XTB OPTIMISATION METHODS """
+
+@contextlib.contextmanager
+def my_temp_dir(parentdir, delete=False):
+    # Later python versions have a delete option on tempdir for debugging, creating one myself
+    temp_dir = tempfile.mkdtemp(dir=parentdir)
+    try:
+        yield temp_dir
+    finally:
+        if delete:
+            shutil.rmtree(temp_dir)
+
+
+class xtbMol():
+    """ Stores the rdkit mol
+        In addition to objects required through xTB calculations
+    """
+
+    def __init__(self, mol, name, **kwargs):
+        self.mol = mol
+        self.name = name
+
+        self.files = {}
+
+        # Leaving kwargs in for redundancy
+        self.__dict__.update(kwargs)
+
+class xtbCalculator():
     """ Class for handling xTB energy calculation and output
     """
     def __init__(self, conf):
         self.conf = conf
-        # Non optional variables assigned as class attributes
-        self.is_solvent = conf["solvent"]
-        self.optlevel = conf["optlevel"]
-        self.is_thermo = conf["thermo"]
-        self.outdir = conf["output_dir"]
 
-    def get_opt(self, mol):
+        self.outdir = os.path.abspath(conf["output_dir"])
+        self.hostdir = os.path.abspath(conf["host_dir"])
+        self.host_sdf = os.path.abspath(conf["host_sdf"])
+        self.xtb_inp = os.path.abspath(conf["xtb_inp"])
+
+        # Get host energy
+        hostmol = Chem.MolFromMolFile(conf["host_sdf"], removeHs=False)
+        self.host = xtbMol(hostmol, "cb7")
+
+        print("optimising host")
+        orgdir = os.getcwd()
+        os.chdir(self.hostdir)
+        hostmol, host_en = self.get_opt(self.host)
+        os.chdir(orgdir)
+        
+        self.hostmol = hostmol
+        self.host_en = host_en
+        self.host_en_dict = {propname : hostmol.GetProp(propname) for propname in hostmol.GetPropNames()}
+        
+        print("host optimised")
+
+    def get_guest_complex_opt(self, comp, guest):
+        """ Optimises the guest and complex
+        """
+        with my_temp_dir(parentdir=f"{self.outdir}", delete=False) as d:
+            try:
+                orgdir = os.getcwd()
+                os.chdir(d)
+                guestxtbmol = xtbMol(guest, "guest")
+                complexxtbmol = xtbMol(comp, "complex")
+
+                finalguestmol, guest_en = self.get_opt(guestxtbmol)
+                finalcomplex, complex_en = self.get_opt(complexambermol)
+                os.chdir(orgdir)
+
+            except:
+                os.chdir(orgdir)
+                raise ValueError("Error in optimisation")
+
+        return finalcomplexmol, finalguestmol
+
+    def get_opt(self, xtbmol):
         """ Calls methods to optimise a mol and retrieve energy
         """
-        with tempfile.TemporaryDirectory(dir=f"{self.outdir}") as d:
+        with my_temp_dir(parentdir="./", delete=False) as d:
             orgdir = os.getcwd()
             os.chdir(d)
-            Chem.MolToMolFile(mol, "mol.sdf", kekulize=False)
+            Chem.MolToMolFile(xtbmol.mol, "mol.sdf", kekulize=False)
 
             # Check whether to add .CHRG file
-            chrg = Chem.GetFormalCharge(mol)
+            chrg = Chem.GetFormalCharge(xtbmol.mol)
             if chrg != 0:
                 with open(".CHRG", "w") as fw:
                     fw.write(str(chrg))
                       
-            self.xtb_opt("mol.sdf")
-
-            try:
-                finalmol = Chem.MolFromMolFile("xtbopt.sdf",removeHs=False,sanitize=False)
-            except:
-                os.chdir(orgdir)
-                raise ValueError
-
-            en = self.get_en()
+            self.xtb_opt("mol.sdf", self.xtb_inp, self.conf["optlevel"], self.conf["thermo"], self.conf["solvent"], self.conf["additional_ens"])
+            finalmol = Chem.MolFromMolFile("xtbopt.sdf",removeHs=False,sanitize=False)
+            
+            en = self.get_en("opt.out", self.conf["thermo"])
 
             # Additional outputs are assigned as class attributes
             if self.conf["additional_ens"]:
-                self.get_additional_ens(finalmol)
+                self.get_additional_ens(xtbmol)
+                for key, val in xtbmol.en_dict.items():
+                    finalmol.SetProp(f"xtb_{key}", str(val))
+                
             os.chdir(orgdir)
 
         return finalmol, en
 
-    def xtb_opt(self, filename):
+    @staticmethod
+    def xtb_opt(filename, xtb_inp, optlevel, is_thermo, is_solvent, additional_ens):
         """ Optimises from an sdf file """
 
         sp.run(["obabel","-isdf","-osdf",f"{filename}","-O",f"{filename}"],stderr=sp.DEVNULL)
-        if self.conf["additional_ens"]:
-            cmd = ["xtb", "--input", "./../../../reward/xtb_additional.inp", f"{filename}"]
+        if additional_ens:
+            cmd = ["xtb", "--input", xtb_inp, f"{filename}"]
         else:
             cmd = ["xtb", f"{filename}"]
 
-        if self.is_thermo:
+        if is_thermo:
             cmd.append("--ohess")
         else:
             cmd.append("--opt")
 
-        cmd.append(self.optlevel)
+        cmd.append(optlevel)
 
-        if self.is_solvent:
+        if is_solvent:
             cmd.append("--alpb")
             cmd.append("water")
 
@@ -72,14 +135,15 @@ class xtbEnergy():
         
         return
 
-    def get_en(self):
+    @staticmethod
+    def get_en(outfile, is_thermo):
         """ Gets total energy from an xtb output file """
-        gen = (i.split() for i in reversed(open("opt.out","r").readlines()))
+        gen = (i.split() for i in reversed(open(outfile,"r").readlines()))
 
         binding = 0
         for i in gen:
             if i:
-                if self.is_thermo:
+                if is_thermo:
                     if " ".join(i[:4]) == "| TOTAL FREE ENERGY":
                         binding = float(i[4])*627.5095
                         break
@@ -88,8 +152,9 @@ class xtbEnergy():
                         binding = float(i[3])*627.5095
                         break
         return binding
-        
-    def get_additional_ens(self, mol):
+
+    @staticmethod
+    def get_additional_ens(xtbmol):
         """ Gets additional energies from an xtb output file """
         gen = (i.split() for i in reversed(open("opt.out","r").readlines()))
         prop_gen = (i.split() for i in open("properties.out","r").readlines())
@@ -163,8 +228,7 @@ class xtbEnergy():
             except:
                 continue
 
-        for key, val in en_dict.items():
-            mol.SetProp(f"xtb_{key}", str(val))    
+        setattr(xtbmol, "en_dict", en_dict)
 
         return
 

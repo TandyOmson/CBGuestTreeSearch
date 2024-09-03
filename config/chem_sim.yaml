@@ -1,7 +1,6 @@
 output_dir: result/testing
 
 n_jobs: 2
-gaff_n_threads: 4
 
 # Docking Settings
 host_dir: reward/data/gaff_host
@@ -30,10 +29,12 @@ solvent: True
 optlevel: normal
 additional_ens: True
 partial_charges: False
+xtb_inp: reward/xtb_additional.inp
 
 # gaff settings
 chg_method: gas
 min_file: reward/min.in
+gaff_n_threads: 4
 
 # REDUNDANT IN CHEMSIM
 c_val: 0.75
