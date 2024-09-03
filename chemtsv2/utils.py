@@ -292,11 +292,6 @@ def chemsim_init(conf):
 
     hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
 
-    confs_per_guest = conf["vina_num_rotations"] * conf["vina_num_translations"] + 1
-    for i in range(confs_per_guest):
-        newhost = Chem.Conformer(hostmol.GetConformer(0))
-        hostmol.AddConformer(newhost, assignId=True)
-
     simulator = ChemSim(conf, hostmol)
     simulator.setup()
     
