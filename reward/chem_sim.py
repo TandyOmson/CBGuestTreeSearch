@@ -55,6 +55,7 @@ class ChemSim():
         self.is_standalone = kwargs.get("standalone", False)
         self.proplist = []
         self.calculator = AmberCalculator(conf)
+        self.docking = DockLigand(conf)
 
     def setup(self):
         """ Sets up output directory for chemistry simulation data
@@ -148,44 +149,11 @@ class ChemSim():
             The relevant output is the return property mol containing binding energy and complex geoemtry
             All other ouput is handled by the ChemSim class methods
         """
-        # If the guest is too large, set bad score
         try:
-            is_small = is_small_cylinder(guestmol)
-        except:
-            # If there is an error in the check, assume it is small
-            is_small = True
-
-        # 2. Dock the best conformer
-        #print("STATUS - docking")
-        dock = DockLigand(self.hostmol, self.conf)
-
-        if not is_small:
-            if self.conf["vina_large_guest"]:
-                try:
-                    complexmols, scores = dock.vina_dock(guestmol)
-                except Exception as e:
-                    raise ChemSimError("Error in vina docking of large guest") from e
-
-            else:
-                raise ChemSimError("Guest too large, vina_large_guest parameter set to False")
-        
-        if is_small:
-            try:
-                complexmols, scores = dock.score_map_comb(guestmol)
-            except:
-                try:
-                    complexmols, scores = dock.score_map_vina(guestmol)
-                except:
-                    try:
-                        complexmols, scores = dock.vina_dock(guestmol)
-                    except Exception as e:
-                        raise ChemSimError("Error in docking of small guest") from e
-
-        try:
-            complexmol = dock.get_best_pose(complexmols, scores)
-        except ValueError as e:
-            raise ChemSimError("Error in getting best pose") from e
-
+            complexmol = self.docking.get_docked_complex(guestmol)
+        except Exception as e:
+            raise ChemSimError("Error in docking") from e
+                    
         return complexmol, guestmol
 
     def run_opt(self, complexmol, guestmol):
@@ -217,7 +185,6 @@ class ChemSim():
         if bad_length:
             optcomplexmol.SetProp("bad_length", "True")
         """
-
 
         # Get decomposition of binding energies:
         complex_en_dict = {propname : optcomplexmol.GetProp(propname) for propname in optcomplexmol.GetPropNames()}
@@ -270,12 +237,14 @@ if __name__ == "__main__":
     with open(args.config, 'r') as f:
         conf = yaml.load(f, Loader=yaml.SafeLoader)
 
-    hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
+    hostmol = Chem.MolFromMolFile(conf["host_sdf"], removeHs=False)
 
+    """
     confs_per_guest = conf["vina_num_rotations"] * conf["vina_num_translations"] + 1
     for i in range(confs_per_guest):
         newhost = Chem.Conformer(hostmol.GetConformer(0))
         hostmol.AddConformer(newhost, assignId=True)
+    """
 
     print("host initialised")
 
