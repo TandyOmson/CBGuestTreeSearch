@@ -208,6 +208,7 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
         generated_ids.append(gids[i])
 
         valid_conf_list.append(_conf)
+        mol.SetProp("_Smiles", str(new_compound[i]))
         valid_mol_list.append(mol)
         valid_filter_check_value_list.append(filter_check_value)
 
@@ -216,8 +217,8 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
     
     #calculation rewards of valid molecules
     def _get_objective_values(mol, conf):
-        chemsim_init(conf)
-        mol.SetProp("_Smiles", str(new_compound[i]))
+        #chemsim_init(conf)
+        #mol.SetProp("_Smiles", str(new_compound[i]))
         return [f(mol) for f in reward_calculator.get_objective_functions(conf)]
 
     if conf['leaf_parallel']:
