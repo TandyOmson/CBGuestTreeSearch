@@ -22,7 +22,6 @@ module append-path LD_LIBRARY_PATH /shared/ucl/apps/amber-gcc/amber-16-mpi/lib
 module append-path LD_RUN_PATH /shared/ucl/apps/amber-gcc/amber-16-mpi/lib
 export AMBERHOME=/shared/ucl/apps/amber-gcc/amber-16-mpi
 
-
 cd /home/uccaat2/Scratch/mcts_gaff
 
 echo "Job start"

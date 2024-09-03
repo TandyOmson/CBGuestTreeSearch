@@ -81,6 +81,7 @@ class ChemSim():
 
         os.environ["OPENBLAS_NUM_THREADS"] = "1"
         os.environ["OMP_NUM_THREADS"] = "1"
+        os.environ["OMP_STACKSIZE"] = "2G"
 
     def flush(self, propertymol, guest=False):
         """ Writes the output of a molecule to the output file
