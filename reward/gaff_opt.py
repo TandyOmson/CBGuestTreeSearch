@@ -189,7 +189,7 @@ class AmberCalculator():
                 
             except:
                 os.chdir(orgdir)
-                raise ValueError
+                raise ValueError("Error in optimisation")
             
         return finalcomplexmol, finalguestmol
             
@@ -203,7 +203,7 @@ class AmberCalculator():
             self.conf["chg_method"] = "abcg2"
 
             self.ambermol_preprocess(ambermol)
-            self.minimize_sander(ambermol, sander_file=self.min_file)
+            self.minimize_sander(ambermol, sander_file=self.min_file, threads=self.conf["gaff_n_threads"])
             self.get_opt_pdb(ambermol)
             self.get_en_sander(ambermol, outfile=ambermol.files["min_out_sander"])
             self.nmode_nab(ambermol)
@@ -214,7 +214,7 @@ class AmberCalculator():
 
         else:
             self.ambermol_preprocess(ambermol)
-            self.minimize_sander(ambermol, sander_file=self.min_file)
+            self.minimize_sander(ambermol, sander_file=self.min_file, threads=self.conf["gaff_n_threads"])
             self.get_opt_pdb(ambermol)
             self.get_en_sander(ambermol, outfile=ambermol.files["min_out_sander"])
             self.nmode_nab(ambermol)
@@ -336,12 +336,10 @@ class AmberCalculator():
         sp.run(["tleap", "-f", f"leap.in"], stdout=sp.DEVNULL)
 
     @staticmethod
-    def minimize_sander(ambermol, sander_file):
+    def minimize_sander(ambermol, sander_file, threads):
         ambermol.files["ncrst"] = f"{ambermol.name}.ncrst"
         ambermol.files["min_traj"] = f"{ambermol.name}.traj"
         ambermol.files["min_out_sander"] = f"{ambermol.name}_sander_min.log"
-
-        threads = 4
         
         if threads > 1:
             sp.run(["mpirun", "-np", f"{threads}",

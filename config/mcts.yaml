@@ -27,9 +27,9 @@ policy_setting:
 
 # Restart setting
 save_checkpoint: True
-checkpoint_load: False
-restart: False
-checkpoint_file: chemtsv2.ckpt.pkl
+checkpoint_load: True
+restart : True
+checkpoint_file: chemtsv2.ckpt3.pkl
 
 # Filter setting
 use_lipinski_filter: False
@@ -67,9 +67,11 @@ triplebond_filter:
   class: TripleBondFilter
 
 # Parrallelisation strategy
-leaf_parallel: False
+leaf_parallel: True
 # Number of leaves simultaneously
-leaf_parallel_num: 1
+leaf_parallel_num: 2
+# Number of threads for sander
+gaff_n_threads: 4
 
 # Chemistry Simulator Settings
 

@@ -79,6 +79,9 @@ class ChemSim():
         self.conf["host_sdf"] = os.path.realpath(self.conf["host_sdf"])
         self.conf["output_dir"] = os.path.realpath(self.conf["output_dir"])
 
+        os.environ["OPENBLAS_NUM_THREADS"] = "1"
+        os.environ["OMP_NUM_THREADS"] = "1"
+
     def flush(self, propertymol, guest=False):
         """ Writes the output of a molecule to the output file
             Properties are written to the propertymol based on the config
@@ -216,9 +219,6 @@ if __name__ == "__main__":
     from xtb_opt import xtbEnergy
     from gaff_opt import AmberCalculator
     
-    os.environ["OPENBLAS_NUM_THREADS"] = "1"
-    os.environ["OMP_NUM_THREADS"] = "8"
-
     print("Starting ChemSim binding energy evaluation")
 
     parser = argparse.ArgumentParser(

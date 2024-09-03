@@ -130,7 +130,10 @@ class CBDock_reward(Reward):
         score_diff = binding_en - base_score
         
         # + sa_score/5.0
-        return - score_diff * 0.1 / (1 + abs(score_diff) * 0.1)
+        reward_score = - score_diff * 0.1 / (1 + abs(score_diff) * 0.1)
+        print("reward score:", reward_score)
+        
+        return reward_score
 
 # Test
 if __name__ == "__main__":

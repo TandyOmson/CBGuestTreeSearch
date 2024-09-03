@@ -1,6 +1,7 @@
 output_dir: result/testing
 
-n_jobs: 5
+n_jobs: 2
+gaff_n_threads: 4
 
 # Docking Settings
 host_dir: reward/data/gaff_host
@@ -9,8 +10,8 @@ host_sdf: reward/data/host_aligned.sdf
 molgen_n_confs: 5
 docking_n_confs: 1
 molgen_rmsd_threshold: 0.35
-vina_num_rotations: 5
-vina_num_translations: 5
+vina_num_rotations: 3
+vina_num_translations: 3
 centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
 
