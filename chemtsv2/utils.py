@@ -4,8 +4,8 @@ import itertools
 import sys
 import time
 import os
-
 import joblib
+
 from tensorflow.keras.models import Sequential, model_from_json
 from tensorflow.keras.layers import Dense, Embedding, GRU
 import numpy as np
@@ -17,7 +17,6 @@ import selfies as sf
 
 from chemtsv2.misc.manage_qsub_parallel import run_qsub_parallel
 from reward.chem_sim import ChemSim
-
 
 def calc_execution_time(f):
     @wraps(f)
@@ -216,24 +215,24 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
         return [], [], [], [], []
     
     #calculation rewards of valid molecules
-    def _get_objective_values(mol, conf):
-        #chemsim_init(conf)
-        #mol.SetProp("_Smiles", str(new_compound[i]))
-        return [f(mol) for f in reward_calculator.get_objective_functions(conf)]
+    def _get_objective_values(mol, smi, conf, simulator):
+        mol.SetProp("_Smiles", smi)
+        return [f(mol) for f in reward_calculator.get_objective_functions(conf, simulator)]
 
+    simulator = chemsim_init(conf)
     if conf['leaf_parallel']:
         if conf['qsub_parallel']:
             if len(valid_mol_list) > 0:
                 values_list = run_qsub_parallel(valid_mol_list, reward_calculator, valid_conf_list)
         else:
             # standard parallelization
-            values_list = joblib.Parallel(n_jobs=conf['leaf_parallel_num'])(
-                joblib.delayed(_get_objective_values)(m, c) for m, c in zip(valid_mol_list, valid_conf_list))
+            values_list = joblib.Parallel(n_jobs=conf['leaf_parallel_num'], prefer="processes", verbose=51)(
+                joblib.delayed(_get_objective_values)(m, m.GetProp("_Smiles"), c, simulator) for m, c in zip(valid_mol_list, valid_conf_list))
     elif conf['batch_reward_calculation']:
         values_list = [f(valid_mol_list, valid_conf_list) for f in reward_calculator.get_batch_objective_functions()]
         values_list = np.array(values_list).T.tolist()
     else:
-        values_list = [_get_objective_values(m, c) for m, c in zip(valid_mol_list, valid_conf_list)]
+        values_list = [_get_objective_values(m, m.GetProp("_Smiles"), c) for m, c in zip(valid_mol_list, valid_conf_list)]
 
     #record values and other data
     for i in range(len(valid_mol_list)):
@@ -280,7 +279,7 @@ def sort_sdf_confs(sdf_inp, sdf_out):
 def run_at_start(f):
     """ Decorator to ensure initialisation is only carried out once
         Stores a reference to the return object that is returned in subsequent calls without changing its state
-    """
+    """    
     def wrapper(*args, **kwargs):
         if not hasattr(wrapper, 'result') or wrapper.result is None:
             wrapper.result = f(*args, **kwargs)
@@ -290,10 +289,10 @@ def run_at_start(f):
 @run_at_start
 def chemsim_init(conf):
     """ Initialises a chemsim object and all the host variables"""
-
+    
     hostmol = Chem.MolFromMolFile(conf["host_sdf"],removeHs=False,sanitize=False)
-
     simulator = ChemSim(conf, hostmol)
     simulator.setup()
-    
+
     return simulator
+        

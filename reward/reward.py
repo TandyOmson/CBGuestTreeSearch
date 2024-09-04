@@ -2,12 +2,12 @@ from abc import ABC, abstractmethod
 from typing import List, Callable
 
 from rdkit.Chem import Mol
-
+from reward.chem_sim import ChemSim
 
 class Reward(ABC):
     @staticmethod
     @abstractmethod
-    def get_objective_functions(conf: dict) -> List[Callable[[Mol], float]]:
+    def get_objective_functions(conf: dict, simulator: ChemSim) -> List[Callable[[Mol], float]]:
         raise NotImplementedError('Please check your reward file')
     
     @staticmethod

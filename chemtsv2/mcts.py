@@ -90,7 +90,7 @@ class MCTS:
         if conf['batch_reward_calculation']:
             self.obj_column_names = [f.__name__ for f in self.reward_calculator.get_batch_objective_functions()]
         else:
-            self.obj_column_names = [f.__name__ for f in self.reward_calculator.get_objective_functions(self.conf)]
+            self.obj_column_names = [f.__name__ for f in self.reward_calculator.get_objective_functions(self.conf, None)]
         self.output_csv_path = os.path.join(conf['output_dir'], f"result_C{conf['c_val']}.csv")
         if os.path.exists(self.output_csv_path) and not conf['restart']:
             sys.exit(f"[ERROR] {self.output_csv_path} already exists. Please specify a different file name.")

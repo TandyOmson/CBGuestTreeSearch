@@ -1,6 +1,7 @@
 from rdkit import Chem
 import traceback
 import numpy as np
+import os
 
 # Methods for reward calculations
 from reward.chem_sim import ChemSim
@@ -8,20 +9,17 @@ from reward.sascorer import calculateScore
 
 # Can inherit from the batchReward abstract class
 from reward.reward import Reward
-from chemtsv2.utils import chemsim_init
 
 class CBDock_reward(Reward):
     """ Reward Class in config. A reference to this class from config is passed through the MCTS class to the evaluate_node method in utils 
         The following methods are static (no instantiation of class required) and abstract (must be included in the class) methods.
     """
-    def get_objective_functions(conf):
+    def get_objective_functions(conf, simulator):
         """ Must return a list of functions """
 
         def binding_mol(mol):
             """ Calculate values contributing to the reward arising from binding
             """
-            # This is run only one time courtesy of the decorated chemsim_init function
-            simulator = chemsim_init(conf)
                 
             smi = mol.GetProp("_Smiles")
             print("running", smi)
@@ -98,7 +96,7 @@ class CBDock_reward(Reward):
                 print(e)
                 print(traceback.format_exc())
 
-                with open(f"{conf['output_dir']}/failed.smi", "a") as fa:
+                with open(f"{os.path.abspath(conf['output_dir'])}/failed.smi", "a") as fa:
                     fa.write(f"{smi}\n")
                 
                 return None

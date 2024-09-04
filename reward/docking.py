@@ -236,12 +236,13 @@ class DockLigand():
         """ Chooses the best pose that is an "endo" complex
         """
         for key, complex_pose in sorted(dockmol.complexes.items()):
+            complexmol = None
             if not is_exo(complex_pose):
                 complexmol = complex_pose
                 break
 
             if not complexmol:
-                raise ValueError("No endo complexes found")
+                raise ValueError(f"No endo complexes found ({len(dockmol.complexes)} exo)")
         
         return complexmol
 
@@ -296,6 +297,7 @@ class DockLigand():
         else:
             setattr(dockmol, "binding_poses", binding_poses)
             
+
     def MMFF94_vina_opt(self, dockmol):
         """ Runs MMFF94, then optimisation on a binding pose
             Modifies the pose in the conformers and adds a vina score
