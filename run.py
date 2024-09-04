@@ -161,7 +161,7 @@ def main():
         conf['random_seed'] = 1234
 
     if conf['random_seed'] != -1:
-        conf['fix_random_seed'] = True
+        conf['fix_random_seed'] = False
 
     # download additional data if files don't exist
     if not os.path.exists('data/sascorer.py'):

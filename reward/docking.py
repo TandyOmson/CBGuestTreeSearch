@@ -228,7 +228,7 @@ class DockLigand():
             self.alignment_poses(dockmol, self.conf["vina_num_rotations"], self.conf["vina_num_translations"])
             self.MMFF94_vina_opt(dockmol)
         else:
-            self.vina_dock(dockmol, n_poses=10, min_rmsd=1.0)
+            self.vina_dock(dockmol, n_poses=10, min_rmsd=0.5)
 
         return dockmol
 

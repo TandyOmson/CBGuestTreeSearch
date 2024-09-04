@@ -6,7 +6,7 @@
 #$ -pe smp 40
 #$ -P Gold
 #$ -A UCL_chemM_Lee
-#$ -N mcts
+#$ -N MCTS
 
 module unload gcc-libs
 module load openblas/0.3.13-serial/gnu-10.2.0

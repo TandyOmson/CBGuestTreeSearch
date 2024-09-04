@@ -6,6 +6,8 @@ threshold_type: generation_num
 hours: 48.0
 generation_num: 10000
 use_selfies: False
+fix_random_seed: False
+random_seed: -1
 
 model_setting: 
   model_json: model/HCs_16.04/model.tf25.json
@@ -27,9 +29,9 @@ policy_setting:
 
 # Restart setting
 save_checkpoint: True
-checkpoint_load: True
-restart : True
-checkpoint_file: chemtsv2.ckpt3.pkl
+checkpoint_load: False
+restart : False
+checkpoint_file: chemtsv2.ckpt.pkl
 
 # Filter setting
 use_lipinski_filter: False
@@ -77,8 +79,7 @@ leaf_parallel_num: 2
 host_dir: reward/data/gaff_host
 host_pdbqt: reward/data/host_aligned.pdbqt
 host_sdf: reward/data/host_aligned.sdf
-molgen_n_confs: 1
-docking_n_confs: 1
+molgen_n_confs: 10
 molgen_rmsd_threshold: 0.35
 vina_num_rotations: 5
 vina_num_translations: 5

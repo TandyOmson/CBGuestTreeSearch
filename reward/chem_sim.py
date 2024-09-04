@@ -16,9 +16,7 @@ import os
 from joblib import Parallel, delayed
 import traceback
 import numpy as np
-
-import traceback
-
+import resource
 import time
 
 # Methods for binding calculations
@@ -50,16 +48,32 @@ class ChemSim():
         # Non optional variables set as class attributes
         self.hostmol = hostmol
         self.outdir = conf["output_dir"]
+
+        # Set the paths of the host_pdbqt and host_sdf to absolute paths inside the scope of the object
+        self.conf["host_pdbqt"] = os.path.realpath(self.conf["host_pdbqt"])
+        self.conf["host_sdf"] = os.path.realpath(self.conf["host_sdf"])
+        self.conf["output_dir"] = os.path.realpath(self.conf["output_dir"])
+
+        #resource.setrlimit(resource.RLIMIT_NOFILE, (131072, 131072))
+        os.environ["KMP_INIT_AT_FORK"] = "FALSE"
+        os.environ["OMP_NUM_THREADS"] = "4"
+        os.environ["OPENBLAS_NUM_THREADS"] = "4"
+        os.environ["MKL_NUM_THREADS"] = "4"
+        os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
+        os.environ["NUMEXPR_NUM_THREADS"] = "4"
+        os.environ["OMP_STACKSIZE"] = "256M"
         
         # SET AS STANDALONE CHEMISTRY SIMULATOR
         self.is_standalone = kwargs.get("standalone", False)
         self.proplist = []
+        
         # Set chemistry simulator, GAFF is default
         if conf["simulator"] == "xtb":
             self.calculator = xtbCalculator(conf)
         else:
             self.calculator = AmberCalculator(conf)
-        
+            
+        # Setup docking
         self.docking = DockLigand(conf)
 
     def setup(self):
@@ -78,15 +92,6 @@ class ChemSim():
         self.complexdf = pd.DataFrame(columns=self.proplist)
         self.guestdf = pd.DataFrame(columns=self.proplist)
         self.bindingdf = pd.DataFrame(columns=self.proplist)
-
-        # Set the paths of the host_pdbqt and host_sdf to absolute paths inside the scope of the object
-        self.conf["host_pdbqt"] = os.path.realpath(self.conf["host_pdbqt"])
-        self.conf["host_sdf"] = os.path.realpath(self.conf["host_sdf"])
-        self.conf["output_dir"] = os.path.realpath(self.conf["output_dir"])
-
-        os.environ["OPENBLAS_NUM_THREADS"] = "1"
-        os.environ["OMP_NUM_THREADS"] = "1"
-        os.environ["OMP_STACKSIZE"] = "2G"
 
     def flush(self, propertymol, guest=False):
         """ Writes the output of a molecule to the output file
@@ -266,41 +271,9 @@ if __name__ == "__main__":
             mol = Chem.MolFromSmiles(smi)
             confs = simulator.get_confs(mol)
             
-            # Try top conformers (number determined by conf["molgen_n_confs"])
-            # Set optlevel
-            if conf["docking_n_confs"] > 1:
-                org_optlevel = conf["optlevel"]
-                org_thermo = conf["thermo"]
-                conf["optlevel"] = "loose"
-                conf["thermo"] = False
-
-                molsout = []
-                guestmolsout = []
-
-                molsoutdock = []
-                guestmolsoutdock = []
-                for i in confs:
-                    confmoldock, confguestmoldock = simulator.run_dock(i)
-                    confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
-
-                    molsoutdock.append(confmoldock)
-                    guestmolsoutdock.append(confguestmoldock)
-
-                    molsout.append(confmolout)
-                    guestmolsout.append(confguestmolout)
-
-                # Identify the best binding energy from crude optimisation
-                bind_ens = [float(i.GetDoubleProp("en")) for i in molsout]
-                best_idx = np.argmin(bind_ens)
-                bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
-
-                conf["optlevel"] = org_optlevel
-                conf["thermo"] = org_thermo
-
-            else:
-                bestconf, bestguestconf = simulator.run_dock(confs[0])
-                
+            bestconf, bestguestconf = simulator.run_dock(confs[0])
             molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
+            
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
 

@@ -1,7 +1,9 @@
 from rdkit import Chem
+from rdkit.Chem import PropertyMol
 import traceback
 import numpy as np
 import os
+import pickle
 
 # Methods for reward calculations
 from reward.chem_sim import ChemSim
@@ -27,41 +29,9 @@ class CBDock_reward(Reward):
             try:
                 confs = simulator.get_confs(mol)
                 
-                # Try top conformers (number determined by conf["molgen_n_confs"])
-                # Set optlevel
-                if conf["molgen_n_confs"] > 1:
-                    org_optlevel = conf["optlevel"]
-                    org_thermo = conf["thermo"]
-                    conf["optlevel"] = "loose"
-                    conf["thermo"] = False
-
-                    molsout = []
-                    guestmolsout = []
-
-                    molsoutdock = []
-                    guestmolsoutdock = []
-                    for i in confs:
-                        confmoldock, confguestmoldock = simulator.run_dock(i)
-                        confmolout, confguestmolout = simulator.run_opt(confmoldock, confguestmoldock)
-
-                        molsoutdock.append(confmoldock)
-                        guestmolsoutdock.append(confguestmoldock)
-
-                        molsout.append(confmolout)
-                        guestmolsout.append(confguestmolout)
-
-                    # Identify the best binding energy from crude optimisation
-                    bind_ens = [float(i.GetProp("en")) for i in molsout]
-                    best_idx = np.argmin(bind_ens)
-                    bestconf, bestguestconf = molsoutdock[best_idx], guestmolsoutdock[best_idx]
-
-                    conf["optlevel"] = org_optlevel
-                    conf["thermo"] = org_thermo
-
-                else:
-                    bestconf, bestguestconf = simulator.run_dock(confs[0])
-                
+                bestconf, bestguestconf = simulator.run_dock(confs[0])
                 molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
+                
                 molout.SetProp("smiles", smi)
                 guestmolout.SetProp("smiles", smi)
 
@@ -81,15 +51,18 @@ class CBDock_reward(Reward):
                 """
 
                 # Required as flush wipes mol properties
-                en = float(molout.GetProp("en"))
-                binding_mol = Chem.Mol(molout)
-                binding_mol.SetDoubleProp("en", en)
+                #en = float(molout.GetProp("en"))
+                binding_mol = PropertyMol.PropertyMol(molout)
+                #binding_mol.SetProp("en", en)
+
+                guestmolout = PropertyMol.PropertyMol(guestmolout)
 
                 # Record additional properties from ChemSim (only complex included in reward functions)
-                simulator.flush(molout)
-                simulator.flush(guestmolout, guest=True)
+                #simulator.flush(molout)
+                #simulator.flush(guestmolout, guest=True)
 
-                return binding_mol
+                # Return pickled object so that properties persist
+                return pickle.dumps(binding_mol), pickle.dumps(guestmolout)
 
             except Exception as e:
                 print("Problem with smiles: ", smi)
@@ -117,9 +90,10 @@ class CBDock_reward(Reward):
             return -1.0
         else:
             try:
-                binding_en = float(values[0].GetProp("en"))
+                binding_en = float(pickle.loads(values[0][0]).GetProp("en"))
             except:
                 return -1.0
+            
         #sa_score = values[1]
         print("binding: ", binding_en)
 

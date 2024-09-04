@@ -340,6 +340,8 @@ class AmberCalculator():
         ambermol.files["ncrst"] = f"{ambermol.name}.ncrst"
         ambermol.files["min_traj"] = f"{ambermol.name}.traj"
         ambermol.files["min_out_sander"] = f"{ambermol.name}_sander_min.log"
+
+        print("running GAFF", os.environ["OMP_NUM_THREADS"])
         
         if threads > 1:
             sp.run(["mpirun", "-np", f"{threads}",

@@ -5,6 +5,7 @@ import sys
 import time
 import os
 import joblib
+import pickle
 
 from tensorflow.keras.models import Sequential, model_from_json
 from tensorflow.keras.layers import Dense, Embedding, GRU
@@ -226,8 +227,16 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
                 values_list = run_qsub_parallel(valid_mol_list, reward_calculator, valid_conf_list)
         else:
             # standard parallelization
-            values_list = joblib.Parallel(n_jobs=conf['leaf_parallel_num'], prefer="processes", verbose=51)(
-                joblib.delayed(_get_objective_values)(m, m.GetProp("_Smiles"), c, simulator) for m, c in zip(valid_mol_list, valid_conf_list))
+            #values_list = joblib.Parallel(n_jobs=conf['leaf_parallel_num'], prefer="processes", verbose=51)(
+            #    joblib.delayed(_get_objective_values)(m, m.GetProp("_Smiles"), c, simulator) for m, c in zip(valid_mol_list, valid_conf_list))
+            values_list = []
+            with joblib.Parallel(n_jobs=conf['leaf_parallel_num'], prefer="processes", return_as="generator", verbose=51) as parallel:
+                for result in parallel(joblib.delayed(_get_objective_values)(m, m.GetProp("_Smiles"), c, simulator) for m, c in zip(valid_mol_list, valid_conf_list)):
+                    if result[0]:
+                        simulator.flush(pickle.loads(result[0][0]))
+                        simulator.flush(pickle.loads(result[0][1]), guest=True)
+                    values_list.append(result)
+            
     elif conf['batch_reward_calculation']:
         values_list = [f(valid_mol_list, valid_conf_list) for f in reward_calculator.get_batch_objective_functions()]
         values_list = np.array(values_list).T.tolist()

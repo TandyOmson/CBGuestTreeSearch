@@ -122,8 +122,8 @@ class MCTS:
 #            if isinstance(i, Chem.rdchem.Mol):
 #                self.objective_values_list[idx] = i.GetDoubleProp("en")
 #                self.objective_values_list.append(i)
-        df_obj = pd.DataFrame(self.objective_values_list, columns=self.obj_column_names)
-        df = pd.concat([df, df_obj], axis=1)
+        #df_obj = pd.DataFrame(self.objective_values_list, columns=self.obj_column_names)
+        #df = pd.concat([df, df_obj], axis=1)
         if os.path.exists(self.output_csv_path):
             df.to_csv(self.output_csv_path, mode='a', index=False, header=False)
         else:
