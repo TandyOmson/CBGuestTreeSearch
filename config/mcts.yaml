@@ -71,7 +71,7 @@ triplebond_filter:
 # Parrallelisation strategy
 leaf_parallel: True
 # Number of leaves simultaneously
-leaf_parallel_num: 2
+leaf_parallel_num: 5
 
 # Chemistry Simulator Settings
 
@@ -107,6 +107,6 @@ partial_charges: False
 
 # gaff settings
 chg_method: gas
-min_file: reward/min.in
-gaff_n_threads: 4
+min_file: /home/uccaat2/Scratch/mcts_gaff/reward/min.in
+gaff_n_threads: 1
 

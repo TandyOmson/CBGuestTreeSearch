@@ -55,13 +55,13 @@ class ChemSim():
         self.conf["output_dir"] = os.path.realpath(self.conf["output_dir"])
 
         #resource.setrlimit(resource.RLIMIT_NOFILE, (131072, 131072))
-        os.environ["KMP_INIT_AT_FORK"] = "FALSE"
-        os.environ["OMP_NUM_THREADS"] = "4"
-        os.environ["OPENBLAS_NUM_THREADS"] = "4"
-        os.environ["MKL_NUM_THREADS"] = "4"
-        os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
-        os.environ["NUMEXPR_NUM_THREADS"] = "4"
-        os.environ["OMP_STACKSIZE"] = "256M"
+        #os.environ["KMP_INIT_AT_FORK"] = "FALSE"
+        #os.environ["OMP_NUM_THREADS"] = "4"
+        #os.environ["OPENBLAS_NUM_THREADS"] = "8"
+        #os.environ["MKL_NUM_THREADS"] = "8"
+        #os.environ["VECLIB_MAXIMUM_THREADS"] = "8"
+        #os.environ["NUMEXPR_NUM_THREADS"] = "8"
+        #os.environ["OMP_STACKSIZE"] = "4G"
         
         # SET AS STANDALONE CHEMISTRY SIMULATOR
         self.is_standalone = kwargs.get("standalone", False)
