@@ -148,7 +148,7 @@ class AmberCalculator():
         self.outdir = os.path.abspath(conf["output_dir"])
         self.hostdir = os.path.abspath(conf["host_dir"])
         self.host_sdf = os.path.abspath(conf["host_sdf"])
-        self.min_input = open(os.path.abspath(conf["min_file"]), "r").read()
+        self.sander_file = os.path.abspath(conf["min_file"])
 
         # Get host energy
         hostmol = Chem.MolFromMolFile(conf["host_sdf"], removeHs=False)
@@ -203,7 +203,7 @@ class AmberCalculator():
             self.conf["chg_method"] = "bcc"
 
             self.ambermol_preprocess(ambermol)
-            self.minimize_sander(ambermol, min_input=self.min_input, threads=self.conf["gaff_n_threads"])
+            self.minimize_sander(ambermol, sander_file=self.sander_file, threads=self.conf["gaff_n_threads"])
             self.get_opt_pdb(ambermol)
             self.get_en_sander(ambermol, outfile=ambermol.files["min_out_sander"])
             self.nmode_nab(ambermol)
@@ -214,7 +214,7 @@ class AmberCalculator():
 
         else:
             self.ambermol_preprocess(ambermol)
-            self.minimize_sander(ambermol, min_input=self.min_input, threads=self.conf["gaff_n_threads"])
+            self.minimize_sander(ambermol, sander_file=self.sander_file, threads=self.conf["gaff_n_threads"])
             self.get_opt_pdb(ambermol)
             self.get_en_sander(ambermol, outfile=ambermol.files["min_out_sander"])
             self.nmode_nab(ambermol)
@@ -336,19 +336,16 @@ class AmberCalculator():
         sp.run(["tleap", "-f", f"leap.in"], stdout=sp.DEVNULL)
 
     @staticmethod
-    def minimize_sander(ambermol, min_input, threads):
+    def minimize_sander(ambermol, sander_file, threads):
         ambermol.files["ncrst"] = f"{ambermol.name}.ncrst"
         ambermol.files["min_traj"] = f"{ambermol.name}.traj"
         ambermol.files["min_out_sander"] = f"{ambermol.name}_sander_min.log"
 
-        with open("min.in", "w") as fw:
-            fw.write(min_input)
-
         # NOTE: THE NUMBER OF PROCESSES (I have called it threads but it really means processese) CANNOT EXCEED THE NUMBER OF RESIDUES
         if threads > 1 and len(Chem.GetMolFrags(ambermol.mol, asMols=True)) >= threads:
-            sp.run(["mpirun", "-np", f"{threads}", "-v",
+            sp.run(["mpirun", "-np", f"{threads}",
                     "sander.MPI", "-O",
-                    "-i", "min.in",
+                    "-i", sander_file,
                     "-o", ambermol.files['min_traj'],
                     "-p", ambermol.files['prmtop'],
                     "-c", ambermol.files['rst7'],
@@ -357,8 +354,9 @@ class AmberCalculator():
                    stderr=open("min.err", "w"),
             )
         else:
-            sp.run(["sander", "-O",
-                    "-i", "min.in",
+            sp.run(["mpirun", "-np", "1",
+                    "sander.MPI", "-O",
+                    "-i", sander_file,
                     "-o", ambermol.files['min_traj'],
                     "-p", ambermol.files['prmtop'],
                     "-c", ambermol.files['rst7'],

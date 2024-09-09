@@ -104,6 +104,9 @@ class CBDock_reward(Reward):
         # + sa_score/5.0
         reward_score = - score_diff * 0.1 / (1 + abs(score_diff) * 0.1)
         print("reward score:", reward_score)
+
+        if not isinstance(reward_score, float) or isinstance(reward_score, int):
+            return -1.0
         
         return reward_score
 
