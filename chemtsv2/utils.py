@@ -241,7 +241,7 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
         values_list = [f(valid_mol_list, valid_conf_list) for f in reward_calculator.get_batch_objective_functions()]
         values_list = np.array(values_list).T.tolist()
     else:
-        values_list = [_get_objective_values(m, m.GetProp("_Smiles"), c) for m, c in zip(valid_mol_list, valid_conf_list)]
+        values_list = [_get_objective_values(m, m.GetProp("_Smiles"), c, simulator) for m, c in zip(valid_mol_list, valid_conf_list)]
 
     #record values and other data
     for i in range(len(valid_mol_list)):
