@@ -1,6 +1,6 @@
 output_dir: result/HC_0
 
-c_val: 0.75
+c_val: 0.8
 # threshold_type: [time, generation_num]
 threshold_type: generation_num
 hours: 48.0
@@ -8,6 +8,7 @@ generation_num: 10000
 use_selfies: False
 fix_random_seed: False
 random_seed: -1
+debug: True
 
 model_setting: 
   model_json: model/HCs_16.04/model.tf25.json
@@ -31,7 +32,7 @@ policy_setting:
 save_checkpoint: True
 checkpoint_load: False
 restart : False
-checkpoint_file: chemtsv2.ckpt.pkl
+checkpoint_file: chemtsv2.ckpt3.pkl
 
 # Filter setting
 use_lipinski_filter: False
