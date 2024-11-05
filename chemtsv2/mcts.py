@@ -152,8 +152,12 @@ class MCTS:
             """selection step"""
             node_pool = []
             while node.state.child_nodes != []:
-                node = node.select_node(self.logger)
-                state.add_position(node.position)
+                try:
+                    node = node.select_node(self.logger)
+                    state.add_position(node.position)
+                except:
+                    print("no valid molecules, setting state.position to newline")
+                    state.add_position("\n")
             self.logger.info(f"state position: {state.position}")
 
             self.logger.debug(f"infinite loop counter (selection): {self.loop_counter_for_selection}")
