@@ -110,4 +110,4 @@ partial_charges: False
 chg_method: gas
 min_file: /home/uccaat2/Scratch/mcts_gaff/reward/min.in
 gaff_n_threads: 1
-
+include_imaginary: True

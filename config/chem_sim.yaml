@@ -6,11 +6,11 @@ n_jobs: 2
 host_dir: reward/data/gaff_host
 host_pdbqt: reward/data/host_aligned.pdbqt
 host_sdf: reward/data/host_aligned.sdf
-molgen_n_confs: 5
+molgen_n_confs: 10
 docking_n_confs: 1
 molgen_rmsd_threshold: 0.35
-vina_num_rotations: 3
-vina_num_translations: 3
+vina_num_rotations: 5
+vina_num_translations: 5
 centroid_diff_threshold: 4
 cavity_atoms_threshold: 6
 
@@ -33,8 +33,9 @@ xtb_inp: reward/xtb_additional.inp
 
 # gaff settings
 chg_method: gas
-min_file: reward/min.in
-gaff_n_threads: 4
+min_file: /home/uccaat2/Scratch/mcts_gaff/reward/min.in
+gaff_n_threads: 1
+include_imaginary: True
 
 # REDUNDANT IN CHEMSIM
 c_val: 0.75
