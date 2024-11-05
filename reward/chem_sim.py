@@ -93,7 +93,7 @@ class ChemSim():
         self.guestdf = pd.DataFrame(columns=self.proplist)
         self.bindingdf = pd.DataFrame(columns=self.proplist)
 
-    def flush(self, propertymol, guest=False):
+    def flush(self, propertymol, idx=None, guest=False):
         """ Writes the output of a molecule to the output file
             Properties are written to the propertymol based on the config
         """
@@ -122,17 +122,24 @@ class ChemSim():
         moldict["mol"] = propertymol
 
         if guest:
-            idx = len(self.guestdf) + 1
+            if not idx:
+                idx = len(self.guestdf) + 1
+                
             df_mol = pd.DataFrame(moldict, index=[idx])
             self.guestdf = pd.concat([self.guestdf, df_mol], axis=0)
             self.guestdf.to_pickle(self.guestfile)
+            
         else:
-            idx = len(self.complexdf) + 1
+            if not idx:
+                idx = len(self.complexdf) + 1
+
             df_mol = pd.DataFrame(moldict, index=[idx])
             self.complexdf = pd.concat([self.complexdf, df_mol], axis=0)
             self.complexdf.to_pickle(self.complexfile)
 
-            idx = len(self.bindingdf) + 1
+            if not idx:
+                idx = len(self.bindingdf) + 1
+                
             df_mol = pd.DataFrame(bindingdict, index=[idx])
             self.bindingdf = pd.concat([self.bindingdf, df_mol], axis=0)
             self.bindingdf.to_csv(self.bindingfile)
@@ -170,11 +177,11 @@ class ChemSim():
                     
         return complexmol, guestmol
 
-    def run_opt(self, complexmol, guestmol):
+    def run_opt(self, complexmol, guestmol, idx=None):
         # 3. Calculate binding energy
         # Definitely set this up to reuse this object otherwise memory usage will get out of hand
         try:
-            optcomplexmol, optguestmol = self.calculator.get_guest_complex_opt(complexmol, guestmol)
+            optcomplexmol, optguestmol = self.calculator.get_guest_complex_opt(complexmol, guestmol, idx)
         except Exception as e:
             raise ChemSimError("Error in optimisation") from e
         
@@ -266,27 +273,27 @@ if __name__ == "__main__":
     simulator.setup()
 
     # Wrapper method with callback for parallel processing
-    def process_molecule_wrapper(simulator, smi):
+    def process_molecule_wrapper(simulator, smi, idx):
         try:
             mol = Chem.MolFromSmiles(smi)
             confs = simulator.get_confs(mol)
             
             bestconf, bestguestconf = simulator.run_dock(confs[0])
-            molout, guestmolout = simulator.run_opt(bestconf, bestguestconf)
+            molout, guestmolout = simulator.run_opt(bestconf, bestguestconf, idx=idx)
             
             molout.SetProp("smiles", smi)
             guestmolout.SetProp("smiles", smi)
 
-            return molout, guestmolout
+            return molout, guestmolout, idx
 
         except Exception as e:
             print("Problem with smiles: ", smi)
             print(e)
             print(traceback.format_exc())
             return None
-        
+
     with Parallel(n_jobs=conf["n_jobs"], prefer="processes", return_as="generator", verbose=51) as parallel:
-        for result in parallel(delayed(process_molecule_wrapper)(simulator, smi) for smi in smi_gen):
+        for result in parallel(delayed(process_molecule_wrapper)(simulator, smi, count) for count, smi in enumerate(smi_gen, 1)):
             if result:
-                simulator.flush(result[0])
-                simulator.flush(result[1], guest=True)
+                simulator.flush(result[0], result[2])
+                simulator.flush(result[1], result[2], guest=True)
