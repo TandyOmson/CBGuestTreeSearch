@@ -1,0 +1,215 @@
+
+          -------------------------------------------------------
+          Amber 24 SANDER                              2024
+          -------------------------------------------------------
+
+| Run on 11/07/2024 at 12:17:17
+
+|   Executable path: sander.MPI
+| Working directory: /home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host
+|          Hostname: Unknown
+  [-O]verwriting output
+
+File Assignments:
+|  MDIN: /home/spine/DProjects/DMCTS/ChemTSv2/reward/min.in                    
+| MDOUT: cb7.traj                                                              
+|INPCRD: cb7.rst7                                                              
+|  PARM: cb7.prmtop                                                            
+|RESTRT: cb7.ncrst                                                             
+|  REFC: refc                                                                  
+| MDVEL: mdvel                                                                 
+| MDFRC: mdfrc                                                                 
+|  MDEN: mden                                                                  
+| MDCRD: mdcrd                                                                 
+|MDINFO: mdinfo                                                                
+|  MTMD: mtmd                                                                  
+|INPDIP: inpdip                                                                
+|RSTDIP: rstdip                                                                
+|INPTRA: inptraj                                                               
+
+|    REMLOG: rem.log
+|   REMTYPE: rem.type
+|  REMSTRIP: 
+|   SAVEENE: saveene
+|CLUSTERINF: cluster.info
+| RESERVOIR: reserv/frame
+|   REMDDIM: 
+
+
+ Here is the input file:
+
+Optimisation                                                                   
+&cntrl                                                                         
+ imin=1,                                                                       
+ maxcyc=5000, ncyc=10, drms=0.0001, dx0=0.0000001,                             
+ cut=99,                                                                       
+ rgbmax=99,                                                                    
+ igb=1,                                                                        
+ gbsa=1,                                                                       
+ dielc=1.0,                                                                    
+ ntmin=3,                                                                      
+ ntb=0,                                                                        
+/                                                                              
+&lmod                                                                          
+ lbfgs_memory_depth=3                                                          
+ xmin_method="TNCG"                                                            
+ xmin_verbosity=2                                                              
+/                                                                              
+
+--------------------------------------------------------------------------------
+   1.  RESOURCE   USE: 
+--------------------------------------------------------------------------------
+
+| Flags: MPI                                                                    
+| New format PARM file being parsed.
+| Version =    1.000 Date = 11/07/24 Time = 12:17:16
+ NATOM  =     126 NTYPES =       5 NBONH =      42 MBONA  =     105
+ NTHETH =     112 MTHETA =     182 NPHIH =     203 MPHIA  =     434
+ NHPARM =       0 NPARM  =       0 NNB   =     903 NRES   =       1
+ NBONA  =     105 NTHETA =     182 NPHIA =     434 NUMBND =       5
+ NUMANG =       9 NPTRA  =       8 NATYP =       5 NPHB   =       0
+ IFBOX  =       0 NMXRS  =     126 IFCAP =       0 NEXTRA =       0
+ NCOPY  =       0
+
+ Implicit solvent radii are modified Bondi radii (mbondi)                                                   
+
+|     Memory Use     Allocated
+|     Real              714345
+|     Hollerith            381
+|     Integer            33486
+|     Max Pairs              1
+|     nblistReal             0
+|     nblist Int             0
+|       Total             5713 kbytes
+
+| Note: 1-4 EEL scale factors are being read from the topology file.
+
+| Note: 1-4 VDW scale factors are being read from the topology file.
+| Duplicated    0 dihedrals
+| Duplicated    0 dihedrals
+
+--------------------------------------------------------------------------------
+   2.  CONTROL  DATA  FOR  THE  RUN
+--------------------------------------------------------------------------------
+
+CB7                                                                             
+
+General flags:
+     imin    =       1, nmropt  =       0
+
+Nature and format of input:
+     ntx     =       1, irest   =       0, ntrx    =       1
+
+Nature and format of output:
+     ntxo    =       2, ntpr    =      50, ntrx    =       1, ntwr    =       1
+     iwrap   =       0, ntwx    =       0, ntwv    =       0, ntwe    =       0
+     ioutfm  =       1, ntwprt  =       0, idecomp =       0, rbornstat=      0
+
+Potential function:
+     ntf     =       1, ntb     =       0, igb     =       1, nsnb    =      25
+     ipol    =       0, gbsa    =       1, iesp    =       0
+     dielc   =   1.00000, cut     =  99.00000, intdiel =   1.00000
+     saltcon =   0.00000, offset  =   0.09000, gbalpha=    1.00000
+     gbbeta  =   0.00000, gbgamma =   0.00000, surften =   0.00500
+     rdt     =   0.00000, rgbmax  =  99.00000  extdiel =  78.50000
+     alpb  =        0
+
+Frozen or restrained atoms:
+     ibelly  =       0, ntr     =       0
+
+Energy minimization:
+     maxcyc  =    5000, ncyc    =      10, ntmin   =       3
+     dx0     =   0.00000, drms    =   0.00010
+
+LMOD:
+     xmin_method                  = TNCG 
+     lbfgs_memory_depth           =       3
+     matrix_vector_product_method = forward finite difference
+     xmin_verbosity               =       2
+
+| MPI Timing options:
+|      profile_mpi =        0
+|  INFO: Old style inpcrd file read
+
+
+--------------------------------------------------------------------------------
+   3.  ATOMIC COORDINATES AND VELOCITIES
+--------------------------------------------------------------------------------
+
+CB7                                                                             
+ begin time read from input coords =     0.000 ps
+
+ Number of triangulated 3-point waters found:        0
+|  Atom division among processors:
+|         0     126
+|  Running AMBER/MPI version on    1 nodes
+
+
+--------------------------------------------------------------------------------
+   4.  RESULTS
+--------------------------------------------------------------------------------
+
+  LMOD XMIN Minimization.
+
+  Note: Owing to the behaviour of the XMIN algorithm,
+        coordinates in the trajectory and intermediate
+        restart files will not match up with energies
+        in the mdout and mdinfo files. The final energy
+        and final coordinates do match.
+
+
+
+   NSTEP       ENERGY          RMS            GMAX         NAME    NUMBER
+      0       3.6099E+01     1.6127E+01     4.2381E+01     N13        31
+
+ BOND    =       23.0231  ANGLE   =      161.5863  DIHED      =       66.6455
+ VDWAALS =      -42.5882  EEL     =      212.6789  EGB        =      -44.1572
+ 1-4 VDW =       14.6367  1-4 EEL =     -359.7566  RESTRAINT  =        0.0000
+ ESURF   =        4.0299
+
+
+   NSTEP       ENERGY          RMS            GMAX         NAME    NUMBER
+     23      -4.7210E+01     6.8430E-05     2.8517E-04     C16        37
+
+ BOND    =        0.2703  ANGLE   =      122.1601  DIHED      =       64.7486
+ VDWAALS =      -49.8751  EEL     =      226.1763  EGB        =      -55.0293
+ 1-4 VDW =        2.0474  1-4 EEL =     -361.7422  RESTRAINT  =        0.0000
+ ESURF   =        4.0336
+
+--------------------------------------------------------------------------------
+   5.  TIMINGS
+--------------------------------------------------------------------------------
+
+|    Read coords time           0.01 ( 0.30% of Total)
+|    Fast Water setup           0.00 ( 0.01% of Total)
+|                Calc gb radii              0.14 ( 8.98% of Gen B)
+|                Communicate gb radii       0.00 ( 0.01% of Gen B)
+|                Calc gb diag               0.29 (17.99% of Gen B)
+|                Calc gb off-diag           0.21 (13.15% of Gen B)
+|                Surface area energy        0.96 (59.82% of Gen B)
+|                Other                      0.00 ( 0.05% of Gen B)
+|             Gen Born time              1.60 (100.0% of Nonbo)
+|          Nonbond force              1.60 (93.91% of Force)
+|          Bond/Angle/Dihedral        0.10 ( 5.70% of Force)
+|          FRC Collect time           0.00 ( 0.01% of Force)
+|          Other                      0.01 ( 0.38% of Force)
+|       Force time                 1.70 (100.0% of Runmd)
+|    Runmd Time                 1.70 (93.00% of Total)
+|    Other                      0.12 ( 6.70% of Total)
+| Total time                 1.83 (99.79% of ALL  )
+
+| Highest rstack allocated:          0
+| Highest istack allocated:          0
+|           Job began  at 12:17:17.885  on 11/07/2024
+|           Setup done at 12:17:17.961  on 11/07/2024
+|           Run   done at 12:17:19.717  on 11/07/2024
+|     wallclock() was called   11060 times
+
+|3D-RISM memory allocation summary
+|Type          Maximum        Current   
+|Integer       0.00000 GB     0.00000 GB
+|Real          0.00000 GB     0.00000 GB
+|Logical       0.00000 GB     0.00000 GB
+|Character     0.00000 GB     0.00000 GB
+|---------------------------------------
+|Total         0.00000 GB     0.00000 GB

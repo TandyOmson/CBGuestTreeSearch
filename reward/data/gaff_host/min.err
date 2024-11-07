@@ -1,0 +1,166 @@
+Starting TNCG minimisation
+ MIN: Iter =    0  NFunc =     0  E =      36.09853  RMSG = 1.6127014e+01
+  CG:   It=    7 (  0.446)q  :-)
+  LS: i= 1  lhs_f=      -70.775345  rhs_f=    -0.015069855
+            lhs_g=       14.310182  rhs_g=       135.62869
+            rel_s=               1  abs_s=       1.1418636
+            max_d=      0.18259147  i_xyz=             92y
+  LS: step=               1  it= 1
+ MIN: Iter =    1  NFunc =     0  E =     -34.67691  RMSG = 3.7600807e+00
+  CG:   It=    9 (  0.270)q  :-)
+  LS: i= 1  lhs_f=      -10.034498  rhs_f=   -0.0020101458
+            lhs_g=      0.15035877  rhs_g=       18.091312
+            rel_s=               1  abs_s=      0.75123078
+            max_d=      0.15493232  i_xyz=            119z
+  LS: step=               1  it= 1
+ MIN: Iter =    2  NFunc =     0  E =     -44.71143  RMSG = 1.3686123e+00
+  CG:   It=    4 (  0.298)q  :-)
+  LS: i= 1  lhs_f=     -0.69008113  rhs_f=  -0.00013786575
+            lhs_g=    0.0075699981  rhs_g=       1.2407917
+            rel_s=               1  abs_s=       0.1125471
+            max_d=     0.019304774  i_xyz=             97z
+  LS: step=               1  it= 1
+ MIN: Iter =    3  NFunc =     0  E =     -45.40152  RMSG = 5.2023570e-01
+  CG:   It=    4 (  0.451)q  :-)
+  LS: i= 1  lhs_f=     -0.18871946  rhs_f=   -3.866249e-05
+            lhs_g=   0.00028051883  rhs_g=      0.34796241
+            rel_s=               1  abs_s=     0.088470681
+            max_d=     0.015870982  i_xyz=             97z
+  LS: step=               1  it= 1
+ MIN: Iter =    4  NFunc =     0  E =     -45.59025  RMSG = 3.1978772e-01
+  CG:   It=   41 (  0.379)q  :-)
+  LS: i= 1  lhs_f=      -1.0924109  rhs_f=  -0.00015995308
+            lhs_g=       0.8826496  rhs_g=       2.6753931
+            rel_s=      0.53808082  abs_s=       1.1679668
+            max_d=             0.2  i_xyz=            117x
+  LS: step=      0.53808082  it= 1
+ MIN: Iter =    5  NFunc =     0  E =     -46.68266  RMSG = 4.7925309e-01
+  CG:   It=    9 (  0.431)q  :-)
+  LS: i= 1  lhs_f=     -0.26663418  rhs_f=  -4.8784162e-05
+            lhs_g=     0.065028342  rhs_g=      0.43905746
+            rel_s=               1  abs_s=      0.48948674
+            max_d=     0.080674476  i_xyz=            119z
+  LS: step=               1  it= 1
+ MIN: Iter =    6  NFunc =     0  E =     -46.94930  RMSG = 2.5802779e-01
+  CG:   It=    9 (  0.462)q  :-)
+  LS: i= 1  lhs_f=     -0.17791431  rhs_f=  -3.4693528e-05
+            lhs_g=     0.019122691  rhs_g=      0.31224175
+            rel_s=               1  abs_s=      0.60515122
+            max_d=      0.10801755  i_xyz=            117x
+  LS: step=               1  it= 1
+ MIN: Iter =    7  NFunc =     0  E =     -47.12721  RMSG = 2.4097489e-01
+  CG:   It=    7 (  0.432)q  :-)
+  LS: i= 1  lhs_f=    -0.066135955  rhs_f=  -1.2861056e-05
+            lhs_g=    0.0032712684  rhs_g=       0.1157495
+            rel_s=               1  abs_s=      0.22693219
+            max_d=       0.0394621  i_xyz=             98y
+  LS: step=               1  it= 1
+ MIN: Iter =    8  NFunc =     0  E =     -47.19335  RMSG = 1.0085823e-01
+  CG:   It=    8 (  0.485)q  :-)
+  LS: i= 1  lhs_f=   -0.0080485703  rhs_f=  -1.6074236e-06
+            lhs_g=   3.6438378e-05  rhs_g=     0.014466813
+            rel_s=               1  abs_s=     0.034847638
+            max_d=    0.0072360813  i_xyz=             63x
+  LS: step=               1  it= 1
+ MIN: Iter =    9  NFunc =     0  E =     -47.20140  RMSG = 3.9874184e-02
+  CG:   It=   23 (  0.422)q  :-)
+  LS: i= 1  lhs_f=   -0.0059414875  rhs_f=  -1.1916722e-06
+            lhs_g=   5.0755368e-05  rhs_g=     0.010725049
+            rel_s=               1  abs_s=     0.052162388
+            max_d=     0.013214649  i_xyz=             63x
+  LS: step=               1  it= 1
+ MIN: Iter =   10  NFunc =     0  E =     -47.20734  RMSG = 2.1196065e-02
+  CG:   It=   12 (  0.459)q  :-)
+  LS: i= 1  lhs_f=   -0.0012005968  rhs_f=  -2.3994522e-07
+            lhs_g=   3.1023018e-06  rhs_g=     0.002159507
+            rel_s=               1  abs_s=     0.022478296
+            max_d=    0.0061895836  i_xyz=            117x
+  LS: step=               1  it= 1
+ MIN: Iter =   11  NFunc =     0  E =     -47.20854  RMSG = 1.5311792e-02
+  CG:   It=   11 (  0.456)q  :-)
+  LS: i= 1  lhs_f=  -0.00043287888  rhs_f=  -8.6562975e-08
+            lhs_g=   5.3280678e-07  rhs_g=   0.00077906677
+            rel_s=               1  abs_s=     0.012176211
+            max_d=    0.0036520285  i_xyz=            117x
+  LS: step=               1  it= 1
+ MIN: Iter =   12  NFunc =     0  E =     -47.20897  RMSG = 9.4987583e-03
+  CG:   It=   29 (  0.411)q  :-)
+  LS: i= 1  lhs_f=  -0.00096483638  rhs_f=  -1.9306011e-07
+            lhs_g=   1.4455387e-06  rhs_g=     0.001737541
+            rel_s=               1  abs_s=     0.044075512
+            max_d=     0.010285692  i_xyz=            117x
+  LS: step=               1  it= 1
+ MIN: Iter =   13  NFunc =     0  E =     -47.20994  RMSG = 8.4372754e-03
+  CG:   It=   18 (  0.430)q  :-)
+  LS: i= 1  lhs_f=  -0.00019660413  rhs_f=  -3.9334787e-08
+            lhs_g=   8.5937709e-08  rhs_g=   0.00035401309
+            rel_s=               1  abs_s=     0.013975267
+            max_d=    0.0019734583  i_xyz=            112x
+  LS: step=               1  it= 1
+ MIN: Iter =   14  NFunc =     0  E =     -47.21014  RMSG = 4.3752922e-03
+  CG:   It=   46 (  0.421)q  :-)
+  LS: i= 1  lhs_f=     -0.00022225  rhs_f=  -4.4419688e-08
+            lhs_g=   4.4014282e-07  rhs_g=   0.00039977719
+            rel_s=               1  abs_s=     0.037501165
+            max_d=    0.0080882982  i_xyz=            101y
+  LS: step=               1  it= 1
+ MIN: Iter =   15  NFunc =     0  E =     -47.21036  RMSG = 3.1309045e-03
+  CG:   It=    9 (  0.477)q  :-)
+  LS: i= 1  lhs_f=  -1.2955111e-05  rhs_f=  -2.5941978e-09
+            lhs_g=   2.8999276e-10  rhs_g=    2.334778e-05
+            rel_s=               1  abs_s=    0.0026620611
+            max_d=   0.00043028751  i_xyz=              4y
+  LS: step=               1  it= 1
+ MIN: Iter =   16  NFunc =     0  E =     -47.21037  RMSG = 1.9538981e-03
+  CG:   It=   50 (  1.447)q  :-(
+  LS: i= 1  lhs_f=  -7.9988316e-05  rhs_f=  -1.5977032e-08
+            lhs_g=   2.9293864e-07  rhs_g=   0.00014379329
+            rel_s=               1  abs_s=     0.026769462
+            max_d=    0.0047846748  i_xyz=            109x
+  LS: step=               1  it= 1
+ MIN: Iter =   17  NFunc =     0  E =     -47.21045  RMSG = 3.1797344e-03
+  CG:   It=   10 (  0.397)q  :-)
+  LS: i= 1  lhs_f=  -9.9461081e-06  rhs_f=  -1.9912367e-09
+            lhs_g=   1.2755905e-09  rhs_g=    1.792113e-05
+            rel_s=               1  abs_s=    0.0038973611
+            max_d=   0.00079956242  i_xyz=            120x
+  LS: step=               1  it= 1
+ MIN: Iter =   18  NFunc =     0  E =     -47.21046  RMSG = 1.4983055e-03
+  CG:   It=    7 (  0.485)q  :-)
+  LS: i= 1  lhs_f=  -2.1581847e-06  rhs_f=  -4.3336114e-10
+            lhs_g=   7.1830355e-12  rhs_g=   3.9002502e-06
+            rel_s=               1  abs_s=   0.00094146663
+            max_d=   0.00021264374  i_xyz=            120x
+  LS: step=               1  it= 1
+ MIN: Iter =   19  NFunc =     0  E =     -47.21046  RMSG = 6.4118366e-04
+  CG:   It=   16 (  0.461)q  :-)
+  LS: i= 1  lhs_f=  -1.1079704e-06  rhs_f=  -2.2244765e-10
+            lhs_g=   2.5332674e-11  rhs_g=   2.0020289e-06
+            rel_s=               1  abs_s=   0.00066990024
+            max_d=   0.00014389821  i_xyz=             64x
+  LS: step=               1  it= 1
+ MIN: Iter =   20  NFunc =     0  E =     -47.21046  RMSG = 4.4960597e-04
+  CG:   It=   14 (  0.418)q  :-)
+  LS: i= 1  lhs_f=  -4.8352723e-07  rhs_f=  -9.7269802e-11
+            lhs_g=   7.6211749e-13  rhs_g=   8.7542821e-07
+            rel_s=               1  abs_s=   0.00050472821
+            max_d=   0.00010786144  i_xyz=            124y
+  LS: step=               1  it= 1
+ MIN: Iter =   21  NFunc =     0  E =     -47.21046  RMSG = 2.1398762e-04
+  CG:   It=   33 (  0.478)q  :-)
+  LS: i= 1  lhs_f=  -1.9821336e-07  rhs_f=  -3.9824132e-11
+            lhs_g=   5.7327373e-12  rhs_g=   3.5841719e-07
+            rel_s=               1  abs_s=   0.00042384095
+            max_d=   9.8387555e-05  i_xyz=            120x
+  LS: step=               1  it= 1
+ MIN: Iter =   22  NFunc =     0  E =     -47.21047  RMSG = 1.1218174e-04
+  CG:   It=   24 (  0.457)q  :-)
+  LS: i= 1  lhs_f=  -6.5186306e-08  rhs_f=  -1.3148913e-11
+            lhs_g=   3.1297324e-12  rhs_g=   1.1834022e-07
+            rel_s=               1  abs_s=     0.000320601
+            max_d=   7.0431745e-05  i_xyz=            117x
+  LS: step=               1  it= 1
+ MIN: Iter =   23  NFunc =     0  E =     -47.21047  RMSG = 6.8430230e-05
+----------------------------------------------------------------
+ END:          :-)  E =     -47.21047  RMSG =   0.0000684
+

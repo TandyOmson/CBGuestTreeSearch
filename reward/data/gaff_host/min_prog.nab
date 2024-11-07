@@ -1,16 +1,16 @@
 molecule m;
 float x[dynamic], f[dynamic], fret;
-m = getpdb( "/home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7_4amber.pdb" );
-readparm( m, "/home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7.prmtop");
+m = getpdb( "cb7_min.pdb" );
+readparm( m, "cb7.prmtop");
 allocate x[ 3*m.natoms ];  allocate f[ 3*m.natoms ];setxyz_from_mol( m, NULL, x );
-mm_options( "ntpr=50, nsnb=99999, gb=1, gbsa=1, cut=999.0, rgbmax=999.0, diel=C, dielc=1.0" );
-mme_init( m, NULL, "::Z", x, NULL);
+mm_options( "ntpr=5000, nsnb=99999, gb=1, gbsa=1, cut=99.0, rgbmax=99.0, diel=C" );
+mme_init( m, NULL, ":::", x, NULL);
 // conjugate gradient minimization
-conjgrad(x, 3*m.natoms, fret, mme, 0.00001, 0.01, 100000 );
+//conjgrad(x, 3*m.natoms, fret, mme, 0.00001, 0.00001, 100000 );
 // Newton-Raphson minimizationP
-mm_options( "ntpr=1" );
-newton( x, 3*m.natoms, fret, mme, mme2, 0.0000001, 0.0, 100 );
+mm_options( "ntpr=100" );
+//newton( x, 3*m.natoms, fret, mme, mme2, 0.0000001, 0.0, 2000 );
 // Write out the minimized pdb
-putpdb( "/home/spine/DProjects/DMCTS/ChemTSv2/reward/data/gaff_host/cb7_min.pdb", m );
+//putpdb( "cb7_min.pdb", m );
 // get the normal modes:
 nmode( x, 3*m.natoms, mme2, 0, 0, 0.0, 0.0, 0);

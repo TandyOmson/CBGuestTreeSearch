@@ -26,6 +26,6 @@ cd /home/uccaat2/Scratch/mcts_gaff
 
 echo "Job start"
 
-python3 reward/chem_sim.py -c config/chem_sim.yaml -i /home/uccaat2/Scratch/mcts_gaff/data/benchmarking/exp_dataset_combined.smi
+python3 reward/chem_sim.py -c config/chem_sim.yaml -i /home/uccaat2/Scratch/mcts_gaff/data/benchmarking/final_experimental_dataset.smi
 
 echo "Job done"
