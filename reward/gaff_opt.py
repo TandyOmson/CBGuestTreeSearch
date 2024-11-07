@@ -12,6 +12,7 @@ import os
 import math
 
 from rdkit import Chem
+from rdkit.Chem import rdmolfiles
 
 """SOME PHYSICAL CONSTANTS"""
 k = 1.380649E-23
@@ -44,6 +45,51 @@ def nonblank_lines(f, reverse=False):
             if line:
                 yield line
 
+def edit_resname_single(pdbfile, *constituents):
+    with open(pdbfile, 'r') as f:
+        lines = f.readlines()
+    # Create a dictioanry with default value 0
+    atom_counts = defaultdict(int)
+    
+    # Get the number of digits in the number of atoms to assign whitespace after atom name
+    for line in lines:
+        if line.startswith('HETATM'):
+            atom_counts[line.split()[2][0]] += 1
+
+    # Get max atom count    
+    max_atom_count = max(atom_counts.values())
+    whitespace = len(str(max_atom_count))
+
+    # Get the column number of the residue number
+    res_column = 24 + whitespace
+
+    # Reset atom counts
+    atom_counts = defaultdict(int)
+
+    frag_num = 0
+    j = 0
+    for i, line in enumerate(lines):
+        if line.startswith('HETATM'):
+            # Remove species at the end
+            line = line[:-4] + line[-3:]
+
+            species = line.split()[2][0]
+
+            if atom_counts[species] == 0:
+                lines[i] = line[:13] + species + " "*(whitespace+1) + constituents[0].residue_name + line[27:]
+                
+            else:
+                lines[i] =  line[:13] + species + str(atom_counts[species]) + " "*(whitespace+1-len(str(atom_counts[species]))) + constituents[0].residue_name + line[27:]
+            atom_counts[species] += 1
+            
+            # Add residue numner at column 24
+            lines[i] = lines[i][:res_column-1] + "1" + 6*" " + lines[i][res_column-1:]
+                    
+    with open(pdbfile, 'w') as f:
+        f.writelines(lines)
+    return
+
+
 def edit_resname(pdbfile, *constituents):
     with open(pdbfile, 'r') as f:
         lines = f.readlines()
@@ -51,7 +97,7 @@ def edit_resname(pdbfile, *constituents):
     atom_counts = defaultdict(int)
 
     # Remove MASTER, CONECT records and comments
-    lines = [line for line in lines if line.startswith(("HETATM", "END", "TER"))]
+    #lines = [line for line in lines if line.startswith(("HETATM", "END", "TER"))]
     
     # Get the number of digits in the number of atoms to assign whitespace after atom name
     for line in lines:
@@ -79,13 +125,10 @@ def edit_resname(pdbfile, *constituents):
 
             # If the .pdb is a single molcule
             if len(constituents)==1:
-                if atom_counts[species] == 0:
-                    lines[i] = line[:13] + species + " "*(whitespace+1) + constituents[0].residue_name + line[27:]
-                    
-                else:
-                    lines[i] =  line[:13] + species + str(atom_counts[species]) + " "*(whitespace+1-len(str(atom_counts[species]))) + constituents[0].residue_name + line[27:]
-                atom_counts[species] += 1
 
+                atom_counts[species] += 1
+                lines[i] =  line[:13] + species + str(atom_counts[species]) + " "*(whitespace+1-len(str(atom_counts[species]))) + constituents[0].residue_name + line[27:]
+                    
                 # Add residue numner at column 24
                 lines[i] = lines[i][:res_column-1] + "1" + 6*" " + lines[i][res_column-1:]
 
@@ -93,13 +136,11 @@ def edit_resname(pdbfile, *constituents):
             elif len(constituents)>1:
                 mol_frag = constituents[frag_num] 
                 if j < mol_frag.mol.GetNumAtoms():
-                    if atom_counts[species] == 0:
-                        lines[i] = line[:13] + species + " "*(whitespace+1) + mol_frag.residue_name + line[27:]
-
-                    else:
-                        lines[i] = line[:13] + species + str(atom_counts[species]) + " "*(whitespace+1-len(str(atom_counts[species]))) + mol_frag.residue_name + line[27:]
-
+                    
                     atom_counts[species] += 1
+                    lines[i] = line[:13] + species + str(atom_counts[species]) + " "*(whitespace+1-len(str(atom_counts[species]))) + mol_frag.residue_name + line[27:]
+
+
                     # Add residue numner at relvant column
                     lines[i] = lines[i][:res_column-1] + str(frag_num+1) + 6*" " + lines[i][res_column-1:]
                     j += 1
@@ -378,16 +419,19 @@ class AmberCalculator():
         ambermol.files["sdf"] = f"{ambermol.name}.sdf"
         ambermol.files["pdb"] = f"{ambermol.name}.pdb"
         ambermol.files["pdb4amber"] = f"{ambermol.name}_4amber.pdb"
-        
-        Chem.MolToMolFile(ambermol.mol, ambermol.files["sdf"])
-        sp.run(["obabel", "-isdf", ambermol.files["sdf"], "-opdb", "-O", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-        #sp.run(["pdb4amber", "-i", ambermol.files["pdb"], "-o", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        ambermol.files["mol2"] = f"{ambermol.name}.mol2"
+
+        rdmolfiles.MolToPDBFile(ambermol.mol, ambermol.files["pdb"], confId=0)
+#        sp.run(["obabel", "-ipdb", ambermol.files["pdb"], "-opdb", "-O", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+        #edit_resname_single(ambermol.files["pdb"], ambermol)
+        sp.run(["obabel", "-ipdb", ambermol.files["pdb"], "-omol2", "-O", ambermol.files["mol2"], "-xl"], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
 
         # Need to edit residue names if the molecule is a complex
         if hasattr(ambermol, "constituents"):
+            Chem.MolToMolFile(ambermol.mol, ambermol.files["sdf"])
+            sp.run(["obabel", "-isdf", ambermol.files["sdf"], "-opdb", "-O", ambermol.files["pdb"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+            sp.run(["pdb4amber", "-i", ambermol.files["pdb"], "-o", ambermol.files["pdb4amber"]], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
             edit_resname(ambermol.files["pdb4amber"], *ambermol.constituents)
-        else:
-            edit_resname(ambermol.files["pdb4amber"], ambermol)
 
     @staticmethod
     def sovlate_packmol_memgen(ambermol):
@@ -397,11 +441,10 @@ class AmberCalculator():
     def antechamber(ambermol, conf):
         """ in: amber formated pdb
             out: antechamber made mol2
-
         """
-        ambermol.files["mol2"] = f"{ambermol.name}.mol2"
+        ambermol.files["mol24amber"] = f"{ambermol.name}_4amber.mol2"
                
-        ante_cmd = ["antechamber", "-i", ambermol.files["pdb4amber"], "-fi", "pdb", "-fo", "mol2", "-o", ambermol.files["mol2"]]
+        ante_cmd = ["antechamber", "-i", ambermol.files["mol2"], "-fi", "mol2", "-fo", "mol2", "-o", ambermol.files["mol24amber"], "-j", "1"]
             
         if conf["chg_method"] == "read":
             ante_cmd.extend(["-c", "rc", "-cf", ambermol.files["chgfile"]]) 
@@ -421,7 +464,7 @@ class AmberCalculator():
         """
         ambermol.files["frcmod"] = f"{ambermol.name}.frcmod"
     
-        sp.run(["parmchk2", "-i", ambermol.files["mol2"], "-f", "mol2", "-o", ambermol.files["frcmod"]], stdout=sp.DEVNULL)
+        sp.run(["parmchk2", "-i", ambermol.files["mol24amber"], "-f", "mol2", "-o", ambermol.files["frcmod"]], stdout=sp.DEVNULL)
 
     @staticmethod
     def tleap_single(ambermol):
@@ -434,7 +477,7 @@ class AmberCalculator():
                
         tleap_script = ["source leaprc.gaff",
                         f"loadamberparams {ambermol.files['frcmod']}",
-                        f"{ambermol.residue_name} = loadmol2 {ambermol.files['mol2']}",
+                        f"{ambermol.residue_name} = loadmol2 {ambermol.files['mol24amber']}",
                         f"check {ambermol.residue_name}",
                         f"saveoff {ambermol.residue_name} {ambermol.files['lib']}",
                         f"saveamberparm {ambermol.residue_name} {ambermol.files['prmtop']} {ambermol.files['rst7']}",
@@ -460,7 +503,7 @@ class AmberCalculator():
 
         tleap_script.extend([f"loadoff {ambermol.files['lib']}" for ambermol in constituents])
         tleap_script.extend([f"loadamberparams {ambermol.files['frcmod']}" for ambermol in constituents])
-
+        
         tleap_script.extend([f"{complexambermol.residue_name} = loadPDB {complexambermol.files['pdb4amber']}",
                              f"savemol2 {complexambermol.residue_name} {complexambermol.files['mol2']} 1",
                              f"saveamberparm {complexambermol.residue_name} {complexambermol.files['prmtop']} {complexambermol.files['rst7']}",

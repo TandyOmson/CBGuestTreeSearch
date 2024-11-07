@@ -1,7 +1,7 @@
 Optimisation
 &cntrl
  imin=1,
- maxcyc=5000, ncyc=100, drms=0.0000001,
+ maxcyc=5000, ncyc=10, drms=0.0001, dx0=0.0000001,
  cut=99,
  rgbmax=99, 
  igb=1,
@@ -11,7 +11,7 @@ Optimisation
  ntb=0,
 /
 &lmod
- lbfgs_memory_depth=5
+ lbfgs_memory_depth=3
  xmin_method="TNCG"
  xmin_verbosity=2
 /

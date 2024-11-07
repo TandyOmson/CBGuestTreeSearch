@@ -174,6 +174,8 @@ class ChemSim():
             complexmol = self.docking.get_docked_complex(guestmol)
         except Exception as e:
             raise ChemSimError("Error in docking") from e
+
+        guestmol = Chem.GetMolFrags(complexmol, asMols=True)[-1]
                     
         return complexmol, guestmol
 
