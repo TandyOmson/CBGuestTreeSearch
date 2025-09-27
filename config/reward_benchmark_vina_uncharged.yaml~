@@ -1,0 +1,12 @@
+# Run settings
+output_dir: data/dataset_benchmarks/uncharged/adamantadine
+reward_setting:
+  reward_module: reward.vina_desc_hydrocarbons
+  reward_class: Vina_reward
+
+# Reward settings
+num_crest_procs: 12
+num_crest_confs: 10
+vina_comps: 10
+boltz_comps: 10
+vina_base_score: -10.0

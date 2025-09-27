@@ -1,0 +1,11 @@
+# Run settings
+output_dir: data/dataset_benchmarks/HCs
+reward_setting:
+  reward_module: reward.Vina_boltz_reward
+  reward_class: Vina_reward
+
+# Reward settings
+num_crest_procs: 12
+num_crest_confs: 10
+vina_comps: 10
+boltz_comps: 10

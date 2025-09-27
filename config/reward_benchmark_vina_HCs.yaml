@@ -1,0 +1,15 @@
+# Run settings
+output_dir: data/dataset_benchmarks/HCs/top_1
+reward_setting:
+  reward_module: reward.vina_desc_hydrocarbons
+  reward_class: Vina_reward
+
+# Vina utils (contains host.sdf and vinadock.inp)
+vina_boltz_utils: /home/andyt/DProjects/DMCTS/VINA_ChemTSv2/reward/vina_boltz_utils
+
+# Reward settings
+num_crest_procs: 12
+num_crest_confs: 10
+vina_comps: 10
+boltz_comps: 10
+vina_base_score: -10.0

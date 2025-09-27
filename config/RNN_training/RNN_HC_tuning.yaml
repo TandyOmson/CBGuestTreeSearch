@@ -1,0 +1,9 @@
+dataset: /home/andyt/DProjects/DMCTS/VINA_ChemTSv2/data/PCCP_data/hydros_no_dupes_top_100_first.smi
+val_set_idxfile: /home/andyt/DProjects/DMCTS/VINA_ChemTSv2/data/PCCP_data/val_split/val_set_idxs_kde_clusters.txt
+
+output_model_dir: model/user_trained
+output_token: model/user_trained/tokens.pkl
+
+epoch: 2
+batch_size: 128
+maxlen: 28
