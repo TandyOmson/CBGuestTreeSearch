@@ -1,0 +1,387 @@
+""" Containts reward classes for uniqueness score
+    This is defined by:
+    - Molecular fingerprint and uniqueness metric (max dist from max density, or min kernel density)
+    - mol_embed_pipeline, max_density_point, and max_density are config arguments
+"""
+
+import sys
+import numpy as np
+
+from chemtsv2.abc import Reward
+
+from rdkit import Chem
+from rdkit.Chem import MACCSkeys
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit import Avalon
+from rdkit.Avalon import pyAvalonTools
+from sklearn.pipeline import Pipeline
+import pickle
+
+# for singleton definition to prevent reloading (could use a dictionary if pipe changes)
+pipe = None
+kde = None
+
+# MACCS
+class uniqueness_score_MACCS_dist(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [MACCSkeys.GenMACCSKeys(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # uniqueness score is either kernel density estimation or distance from max density
+            max_density_point = np.array(conf["max_density_point"])
+            dist_from_max = np.linalg.norm(X_pca[0] - max_density_point)
+            
+            return dist_from_max, X_pca[0]
+        
+        return [uniq_score]
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        reward_score = (2*u_score)/(u_score+np.sqrt(1.4))
+        return reward_score
+
+class uniqueness_score_MACCS_dist_min(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [MACCSkeys.GenMACCSKeys(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # uniqueness score is either kernel density estimation or distance from max density
+            target_density_point = np.array(conf["target_density_point"])
+            dist_from_max = np.linalg.norm(X_pca[0] - target_density_point)
+            
+            return dist_from_max, X_pca[0]
+        
+        return [uniq_score]
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        #reward_score = 2*(np.sqrt(2)-u_score)/(2*np.sqrt(2))-u_score
+        reward_score = np.exp(-u_score)
+        return reward_score
+
+class uniqueness_score_MACCS_kde(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+            global kde
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [MACCSkeys.GenMACCSKeys(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # load kernel density estimation
+            if kde is None:
+                with open(conf["kde"], "rb") as fr:
+                    kde = pickle.load(fr)
+            nearby_density = np.exp(kde.score_samples(X_pca)[0])
+            
+            return nearby_density, conf["max_density"], X_pca[0]
+        
+        return [uniq_score]
+
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        max_density = values[0][1]
+        reward_score = 1 - ((u_score*(1+(2*max_density)))/(u_score + max_density))
+        return reward_score
+
+# morgan
+class uniqueness_score_morgan_dist(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [rdFingerprintGenerator.GetMorganGenerator(radius=2).GetFingerprint(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # uniqueness score is either kernel density estimation or distance from max density
+            max_density_point = np.array(conf["max_density_point"])
+            dist_from_max = np.linalg.norm(X_pca[0] - max_density_point)
+            
+            return dist_from_max, X_pca[0]
+        
+        return [uniq_score]
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        reward_score = (2*u_score)/(u_score+np.sqrt(1.4))
+        return reward_score
+
+class uniqueness_score_morgan_kde(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+            global kde
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [rdFingerprintGenerator.GetMorganGenerator(radius=2).GetFingerprint(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # load kernel density estimation
+            if kde is None:
+                with open(conf["kde"], "rb") as fr:
+                    kde = pickle.load(fr)
+            nearby_density = np.exp(kde.score_samples(X_pca)[0])
+            
+            return nearby_density, conf["max_density"], X_pca[0]
+        
+        return [uniq_score]
+
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        max_density = values[0][1]
+        reward_score = 1 - ((u_score*(1+(2*max_density)))/(u_score + max_density))
+        return reward_score
+
+# Atom pair
+class uniqueness_score_atom_pair_dist(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [rdFingerprintGenerator.GetAtomPairGenerator().GetFingerprint(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # uniqueness score is either kernel density estimation or distance from max density
+            max_density_point = np.array(conf["max_density_point"])
+            dist_from_max = np.linalg.norm(X_pca[0] - max_density_point)
+            
+            return dist_from_max, X_pca[0]
+        
+        return [uniq_score]
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        reward_score = (2*u_score)/(u_score+np.sqrt(1.4))
+        return reward_score
+
+class uniqueness_score_atom_pair_dist_min(Reward):
+    """ Minimizes distance from a given point in PCA space instead of maximising distance from a given point as above
+    """
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [rdFingerprintGenerator.GetAtomPairGenerator().GetFingerprint(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # uniqueness score is either kernel density estimation or distance from max density
+            target_density_point = np.array(conf["target_density_point"])
+            dist_from_max = np.linalg.norm(X_pca[0] - target_density_point)
+            
+            return dist_from_max, X_pca[0]
+        
+        return [uniq_score]
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        #reward_score = 2*(np.sqrt(2)-u_score)/(2*np.sqrt(2))-u_score
+        reward_score = np.exp(-u_score)
+        return reward_score
+
+class uniqueness_score_atom_pair_kde(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+            global kde
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [rdFingerprintGenerator.GetAtomPairGenerator().GetFingerprint(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # load kernel density estimation
+            if kde is None:
+                with open(conf["kde"], "rb") as fr:
+                    kde = pickle.load(fr)
+            nearby_density = np.exp(kde.score_samples(X_pca)[0])
+            
+            return nearby_density, conf["max_density"], X_pca[0]
+        
+        return [uniq_score]
+
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        max_density = values[0][1]
+        reward_score = 1 - ((u_score*(1+(2*max_density)))/(u_score + max_density))
+        return reward_score
+
+# klekota-roth
+class uniqueness_score_kr_dist(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = None
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # uniqueness score is either kernel density estimation or distance from max density
+            max_density_point = np.array(conf["max_density_point"])
+            dist_from_max = np.linalg.norm(X_pca[0] - max_density_point)
+            
+            return dist_from_max, X_pca[0]
+        
+        return [uniq_score]
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        reward_score = (2*u_score)/(u_score+np.sqrt(1.4))
+        return reward_score
+
+class uniqueness_score_kr_kde(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+            global kde
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = None
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # load kernel density estimation
+            if kde is None:
+                with open(conf["kde"], "rb") as fr:
+                    kde = pickle.load(fr)
+            nearby_density = np.exp(kde.score_samples(X_pca)[0])
+            
+            return nearby_density, conf["max_density"], X_pca[0]
+        
+        return [uniq_score]
+
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        max_density = values[0][1]
+        reward_score = 1 - ((u_score*(1+(2*max_density)))/(u_score + max_density))
+        return reward_score
+
+# avalon
+class uniqueness_score_avalon_dist(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [pyAvalonTools.GetAvalonFP(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # uniqueness score is either kernel density estimation or distance from max density
+            max_density_point = np.array(conf["max_density_point"])
+            dist_from_max = np.linalg.norm(X_pca[0] - max_density_point)
+            
+            return dist_from_max, X_pca[0]
+        
+        return [uniq_score]
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        reward_score = (2*u_score)/(u_score+np.sqrt(1.4))
+        return reward_score
+
+class uniqueness_score_avalon_kde(Reward):
+    def get_objective_functions(conf):
+        
+        def uniq_score(mol):
+            global pipe
+            global kde
+            if pipe is None:
+                with open(conf["mol_embed_pipeline"], "rb") as fr:
+                    pipe = pickle.load(fr)
+
+            # molecule fingerprint
+            fp = [pyAvalonTools.GetAvalonFP(mol)]
+            # position in pca space
+            X_pca = pipe.transform(fp)
+
+            # load kernel density estimation
+            if kde is None:
+                with open(conf["kde"], "rb") as fr:
+                    kde = pickle.load(fr)
+            nearby_density = np.exp(kde.score_samples(X_pca)[0])
+            
+            return nearby_density, conf["max_density"], X_pca[0]
+        
+        return [uniq_score]
+
+
+    def calc_reward_from_objective_values(values, conf):
+        u_score = values[0][0]
+        max_density = values[0][1]
+        reward_score = 1 - ((u_score*(1+(2*max_density)))/(u_score + max_density))
+        return reward_score

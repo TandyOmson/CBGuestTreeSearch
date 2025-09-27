@@ -1,0 +1,20 @@
+# Ignore result, model, data, and config folders
+# Ignore everything inside these folders
+result/*
+model/*
+data/*
+reward/mol_embedding_pipelines/*
+
+scratch_programs/rdkit_embed/results/
+scratch_programs/vina_breakdown_smina/results/
+scratch_programs/random_mol_gen/results/
+scratch_programs/fp_decomp_kde/results/
+scratch_programs/fp_decomp_kde/fp_decomp_testing_pipeline/results/
+scratch_programs/dataset_benchmarks/results/
+
+# But don't ignore the folders themselves
+!result/.gitkeep
+!model/.gitkeep
+!data/.gitkeep
+!reward/mol_embedding_pipelines/.gitkeep
+

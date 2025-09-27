@@ -1,0 +1,174 @@
+# README for reward function
+
+## How to define reward function
+
+ChemTSv2 frexibly accept user-defined reward file written in Python3.
+A user-defined class should inherit from a [Reward base class](../chemtsv2/abc.py).
+The reward class contains two static methods: `get_objective_functions()` and `calc_reward_from_objective_values()`.
+The former method takes a configuration parameter object in a dictionary format, has at least one inner function that calculates an objective value from a `Mol` object of RDKit, and returns a list of inner functions.
+The latter method takes a list of calculated objective values and the parameter object and returns a float value.
+
+Below is a simple example using only Python packages:
+
+```python
+import sys
+import numpy as np
+from rdkit.Chem import Descriptors
+import sascorer
+from chemtsv2.abc import Reward
+
+class Jscore_reward(Reward):
+    def get_objective_functions(conf):
+        def LogP(mol):
+            return Descriptors.MolLogP(mol)
+        def SAScore(mol):
+            return sascorer.calculateScore(mol)
+        def RingSizePenalty(mol):
+            ri = mol.GetRingInfo()
+            max_ring_size = max((len(r) for r in ri.AtomRings()), default=0)
+            return max_ring_size - 6
+        return [LogP, SAScore, RingSizePenalty]
+
+    def calc_reward_from_objective_values(values, conf):
+        logP, sascore, ring_size_penalty = values
+        jscore = logP - sascore - ring_size_penalty
+        return jscore / (1 + abs(jscore))
+```
+
+If you want to use external software packages, such as Gaussian 16 and AutoDock Vina, you can use them in the reward file using `subprocess` Python module (cf. [Vina_binary_reward.py](./Vina_binary_reward.py))
+
+## Additional packages for prepared reward files
+
+### dscore_reward.py
+
+```bash
+pip install chemtsv2 lightgbm==3.2.1
+```
+
+### Vina_binary_reward.py
+
+```bash
+pip install meeko
+```
+
+Need to install AutoDock Vina (v1.2.3) on your computer. Please download and install it. https://github.com/ccsb-scripps/AutoDock-Vina/releases
+
+### Vina_reward.py
+
+AutoDock Vina also provides the Python package, but the above binary version is more stable in ChemTSv2.
+
+```bash
+pip install vina
+pip install meeko 
+```
+
+### fluor_reward.py and chro_reward.py
+
+To facilitate the execution of Gaussian 16 software, ChemTSv2 utilizes [QCforever](https://github.com/molecule-generator-collection/QCforever). 
+First, you need to install Gaussian 16 software, and then, just run the following command to install QCforever.
+
+```bash
+pip install --upgrade git+https://github.com/molecule-generator-collection/QCforever.git
+```
+
+### Vina_use_appropriate_lingand3d_reward.py
+
+This reward function need AutoDock Vina Python package and openbabel binary.
+Below is the command to install AutoDock Vina Python package.
+
+```bash
+pip install vina, meeko, scipy
+```
+
+Below is the example of command to install openbabel binary.
+In detail, please refer to the official instruction (https://openbabel.org/docs/dev/Installation/install.html#basic-build-procedure).
+
+```bash
+git clone https://github.com/openbabel/openbabel/
+cd openbabel
+mkdir build; cd build
+cmake ../ -DCMAKE_INSTALL_PREFIX=(/path/to/install/)
+make
+make install
+```
+
+### gnina_singularity_reward.py
+
+This reward function need gnina and Singularity.
+
+How to setup:
+
+```bash
+pip install spython
+singularity build reward/gnina.sif docker://gnina/gnina:latest
+```
+
+How to run:
+
+```bash
+chemtsv2 -c config/setting_gnina_singularity.yaml --gpu 0 --use_gpu_only_reward
+```
+
+### gnina_rmsd_reward.py
+
+This reward function calculates ligand RMSD of the common molecular scaffold between a docking pose and reference structure. When using this function, note the following.
+
+1. When using a ligand from a crystal structure, outputted using Pymol, as the reference structure, please convert it using Open Babel as follows:
+
+```bash
+obabel -ipdb ligand.pdb -omol -O ligand.mol
+```
+
+2. This reward function doesn't take into account the inversion of symmetrical structure caused by a single bond when calculates RMSD.
+
+### gnina_strain_reward.py
+
+This reward function need  StrainFilter distributed at [Tldr's a Ligand Discovery Resource](https://tldr.docking.org/).
+Using this reward fucntion, you need to create Tldr account at [Tldr Web site](https://tldr.docking.org/) with the agreement of the Tldr's license, and activate the account after getting permission by the Irwin and Shoichet Laboratories. After finishing the installation of STRAIN_FILTER directory, please move it to ChemTSv2/data/
+
+You also need to install openbabel. Click [here](#here) for instllation instructions.
+
+Strainfilter is licensed by the [Irwin](https://irwinlab.compbio.ucsf.edu/) and [Shoichet](https://bkslab.org/) Laboratories in the Department of Pharmaceutical Chemistry at the University of California, San Francisco (UCSF).
+
+### gnina_interaction_reward.py / Vina_binary_interaction_reward.py
+
+This reward function assesses the interactions between the receptor and generated molecules using [ProLIF](https://doi.org/10.1186/s13321-021-00548-6).
+To use this function, you need to install ProLIF and MDAnalysis. When using `Vina_binary_interaction_reward.py`, you need to install Meeko additionally.
+
+```bash
+pip install prolif
+pip install MDAnalysis
+pip install meeko   # For Vina_binary_interaction_reward.py
+```
+
+You can specify parameters for ProLIF in a YAML configuration file.
+An example of configuration is shown below.
+
+```yaml
+prolif_receptor: data/1iep_receptor.pdb
+prolif_interactions:
+  - residue: MET318.A
+    interaction_type: ['VdWContact']
+    cutoff: [3.0]
+  - residue: ILE360.A
+    interaction_type: ['HBAcceptor', 'HBDonor']
+    cutoff: [3.5, 3.5]
+prolif_tolerance: 10
+```
+
+- **`prolif_receptor`**(Only for use of `Vina_binary_interaction_reward.py`): A path to a pdb formatted receptor file. You need to prepare a receptor file for Vina in pdb format in addition to pdbqt format.
+
+- **`prolif_interactions`**: Setting to detect interactions.
+
+  - **`residue`**: The target residue in the receptor. The format is `[residue_name][number].[chain]`.
+    - `[residue_name]`: The three-letter code for the amino acid.
+    - `[number]`: The residue sequence number.
+    - `[chain]`: The chain identifier.
+
+  - **`interaction_type`**: A list of interaction types to be assessed.
+    - Available interaction types are `['Anionic', 'CationPi', 'Cationic', 'EdgeToFace', 'FaceToFace', 'HBAcceptor', 'HBDonor', 'Hydrophobic', 'MetalAcceptor', 'MetalDonor', 'PiCation', 'PiStacking', 'VdWContact', 'XBAcceptor', 'XBDonor']` (confirmed with ProLIF v2.0.3).
+    - For more details, please refer [ProLIF documentation](https://prolif.readthedocs.io/en/latest/source/modules/interaction-fingerprint.html#detecting-interactions-between-residues-prolif-interactions-interactions).
+
+  - **`cutoff`**: A list of cutoff distances (in Å) for the specified interaction types. The cutoff distance is the maximium distance at which an interaction is considered to exist. The order of cutoffs should correspond to the order of interaction types.
+
+- **`prolif_tolerance`**: A parameter that sets the upper distance limit (in Å) at which specified interactions will be searched.

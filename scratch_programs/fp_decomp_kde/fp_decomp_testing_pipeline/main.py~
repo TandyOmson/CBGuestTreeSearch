@@ -1,0 +1,126 @@
+from typing import Callable, Dict
+import pickle
+import pandas as pd
+import numpy as np
+import random
+
+from rdkit import Chem
+from sklearn.pipeline import Pipeline
+from sklearn.neighbors import KernelDensity
+
+from sklearn.decomposition import PCA, KernelPCA
+from sklearn.manifold import LocallyLinearEmbedding, Isomap, TSNE
+import umap
+from sklearn.preprocessing import MinMaxScaler
+
+from fingerprints.fingerprints import FingerprintGenerators
+from utils import cluster_by_kde_contours
+from evaluators.gaussianity import skew, kurtosis, kl_divergence
+from evaluators.projection import fp_decomp_distance_correlation, stability_under_noise_perturbation, stability_under_split, outlier_removal_perturbation
+from evaluators.clusters import cluster_overlap, get_cluster_sizes
+from evaluators.intrinsic_dim import twonn, mle
+from evaluators.plots import plot_kde_contours_2D, plot_decomp_2D, plot_cluster_lens_bar
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib.gridspec import GridSpec
+
+debug = True
+def dprint(s):
+    if debug == True:
+        print(s)
+    else:
+        pass
+
+fpgen = FingerprintGenerators()
+
+FINGERPRINTS: Dict[str, Callable] = {
+    'morgan_ECFP4_2048' : lambda mol: fpgen.get_morgan_ecfp4(mol),
+    'morgan_ECFP6_2048' : lambda mol: fpgen.get_morgan_ecfp6(mol),
+    'atom_pair_2048' : lambda mol: fpgen.get_atom_pair_fp(mol),
+    'topo_tors_2048' : lambda mol: fpgen.get_torsion_fp(mol),
+    'rdkit_2048' : lambda mol: fpgen.get_rdkit_fp(mol),
+    'avalon_512' : lambda mol: fpgen.get_avalon_fp(mol),
+    'MACCS_166' : lambda mol: fpgen.get_maccs_fp(mol),
+}
+
+DECOMPOSERS: Dict[str, Pipeline] = {
+    "pca" : Pipeline([("decomp", PCA(n_components=2)), ("scaler", MinMaxScaler((-1,1)))]),
+    "pca_rbf" : Pipeline([("decomp", KernelPCA(n_components=2, kernel="rbf")),("scaler", MinMaxScaler((-1,1)))]),
+    "isomap" : Pipeline([("decomp", Isomap(n_components=2)),("scaler", MinMaxScaler((-1,1)))]),
+    "umap" : Pipeline([("decomp", umap.UMAP(n_components=2)),("scaler", MinMaxScaler((-1,1)))]),
+    "lle" : Pipeline([("decomp", LocallyLinearEmbedding(n_components=2)),("scaler", MinMaxScaler((-1,1)))]),
+    "t-sne" : Pipeline([("decomp", TSNE(n_components=2)),("scaler", MinMaxScaler((-1,1)))]),
+}
+
+# Load SMILES data
+smis = [i.rstrip() for i in open("data/hydros8992.smi", "r").readlines()]
+mols = [Chem.MolFromSmiles(s) for s in smis]
+
+results = []
+# Run combinations
+run_count = 0
+for fp_name, fp_func in FINGERPRINTS.items():
+    # TODO: Store fingerprints
+    fps_all = np.array([fp_func(m) for m in mols])
+    for decomp_name, decomp_func in DECOMPOSERS.items():
+        print("Running {} / {}, ({} of {})".format(fp_name, decomp_name, run_count, len(FINGERPRINTS)*len(DECOMPOSERS)))
+
+        # Generate data for tests
+        X_decomp_all = decomp_func.fit_transform(fps_all)
+        print("decomposed training set to embedding: {}".format(X_decomp_all.shape))
+
+        # Gaussian kernel denisty estimation
+        kde = KernelDensity(kernel="gaussian", bandwidth=0.5)
+        kde.fit(X_decomp_all)
+
+        # Cluster by kde
+        n_clusters = 10
+        Z_all, contours, cluster_labels, cluster_lens = cluster_by_kde_contours(X_decomp_all, kde, 10, min_cluster_len=1)
+        
+        # TODO: Store decompositions
+
+        # Evaluations
+        metrics = {}
+
+        # gaussianity
+        dprint("skew")
+        metrics["skew"] = skew(X_decomp_all)
+        dprint("kurtosis")
+        metrics["kurtosis"] = kurtosis(X_decomp_all)
+        dprint("kl div")
+        metrics["kl_div"] = kl_divergence(X_decomp_all)
+
+        # projection
+        dprint("corr")
+        metrics["spearmanr"], metrics["pearsronr"] = fp_decomp_distance_correlation(fps_all, X_decomp_all)
+        dprint("noise pert")
+        metrics["noise_pert"] = stability_under_noise_perturbation(fps_all, X_decomp_all, decomp_func)
+        dprint("outlier pert")
+        metrics["outlier_pert"] = outlier_removal_perturbation(X_decomp_all, kde)
+
+        # clusters
+        metrics["avg_cluster_size"] = np.mean(cluster_lens)
+        metrics["max_cluster_size"] = max(cluster_lens)
+        metrics["min_cluster_size"] = min(cluster_lens)
+
+        # intrinsic dimension estimation
+        sample_idxs = random.sample(range(X_decomp_all.shape[0]), 1000)
+        X_decomp_sample = X_decomp_all[sample_idxs, :]
+        
+        dprint("twonn")
+        metrics["twoNN"] = twonn(X_decomp_sample)
+        dprint("mle")
+        metrics["MLE"] = mle(X_decomp_sample)
+
+        results.append({'fingerprint' : fp_name,
+                        'decomp' : decomp_name,
+                        **metrics,
+                        })
+
+        run_count += 1
+        # temp, shouldnt be indented
+        df_results = pd.DataFrame(results)
+        print(df_results)
+        df_results.to_csv("results.txt")
+        exit()

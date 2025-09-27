@@ -1,0 +1,54 @@
+from rdkit import Chem
+from rdkit.Chem import rdMolDescriptors
+import sys
+
+def count_H_046(mol):
+    count = 0
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() != 1:
+            continue  # Only hydrogens
+
+        # Get the carbon the hydrogen is attached to
+        neighbors = atom.GetNeighbors()
+        if len(neighbors) != 1:
+            continue  # Should only have one neighbor
+        carbon = neighbors[0]
+
+        if carbon.GetAtomicNum() != 6:
+            continue  # H not attached to carbon
+
+        Chem.SetHybridization(mol)
+        if carbon.GetHybridization() != Chem.HybridizationType.SP3:
+            continue  # Not sp3-hybridized
+
+         # Get neighbors of the carbon (excluding the H we started from)
+        for neighbor in carbon.GetNeighbors():
+            if neighbor.GetAtomicNum() != 6:
+                continue  # Only consider carbon neighbors (next C)
+
+             # Check if *this* neighbor (next C) is attached to any heteroatoms
+            if any(a.GetAtomicNum() > 1 and a.GetAtomicNum() != 6 for a in neighbor.GetNeighbors()):
+                break  # X found, invalid
+        else:
+            # Passed all checks
+            count += 1
+
+    return count
+
+def get_descs_hydrocarbons(mol):
+    MORSE = rdMolDescriptors.CalcMORSE(mol)
+    WHIM = rdMolDescriptors.CalcWHIM(mol)
+    
+    # 3D MORSE descriptors - spatial arrangement of atoms based on electron diffratction indices 
+    Mor29p = MORSE[156] # weighted by atomic polarizabilities
+    Mor24u = MORSE[23] # unweighted
+    # H attached to C0(sp3) no X attached to next C
+    H046 = count_H_046(mol)
+    # WHIM 3D global shape index weighted by atomic masses
+    Km = WHIM[95]
+
+    return Mor29p, Mor24u, H046, Km
+
+mol = Chem.MolFromMolFile(sys.argv[1], removeHs=False)
+Mor29p, Mor24u, H046, Km = get_descs_hydrocarbons(mol)
+print(f"{Mor29p*-3.52995297},{Mor24u*1.3107841},{H046*-0.27674704},{Km*1.65390875},-1.72209064")

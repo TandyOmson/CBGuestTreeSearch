@@ -1,0 +1,7 @@
+import sys
+
+smina_out = [i.rstrip().split(" ") for i in open(sys.argv[1], "r").readlines()]
+
+gauss_1, gauss_2, repulsion, hydrophobic, h_bond, n_tors = [float(i) for i in smina_out[-1][2:]]
+
+print(f"{-0.035579*gauss_1},{-0.005156*gauss_2},{0.84025*repulsion},{-0.035069*hydrophobic},{-0.587439*h_bond},{1.923*n_tors}")

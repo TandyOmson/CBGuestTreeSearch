@@ -1,0 +1,26 @@
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.neighbors import NearestNeighbors
+from scipy.stats import norm
+from skdim.id import MLE
+
+def twonn(X):
+    """Two-NN estimator of intrinsic dimensionality
+    """
+    nbrs = NearestNeighbors(n_neighbors=3).fit(X)
+    distances, _ = nbrs.kneighbors(X)
+    r1 = distances[:, 1]
+    r2 = distances[:, 2]
+    mu = r2 / r1
+    mu = mu[mu > 0]
+    log_mu = np.log(mu)
+    id_est = 1.0 / np.mean(log_mu)
+    return id_est
+
+
+def mle(X):
+    """MLE intrinsic dimensionality estimator from scikit-dimension
+    """
+    mle = MLE()
+    mle.fit(X)
+    return mle.dimension_

@@ -1,0 +1,5 @@
+# Ignore result, model, data, and config folders
+result/
+model/
+data/
+config/

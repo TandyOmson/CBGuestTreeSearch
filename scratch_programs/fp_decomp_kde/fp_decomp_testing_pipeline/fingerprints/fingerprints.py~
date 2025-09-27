@@ -1,0 +1,44 @@
+from rdkit import Chem
+from rdkit.Chem import MACCSkeys
+from rdkit.Chem import rdFingerprintGenerator as FG
+from rdkit import Avalon
+from rdkit.Avalon import pyAvalonTools
+from rdkit.Chem import MACCSkeys
+import numpy as np
+
+class FingerprintGenerators:
+    def __init__(self,
+                 morgan_nbits: int = 2048,
+                 rdkit_nbits: int = 2048,
+                 atom_pair_nbits: int = 2048,
+                 torsion_nbits: int = 2048):
+        """
+        Initialize reusable fingerprint generators.
+        """
+        self.morgan_ECFP4 = FG.GetMorganGenerator(radius=2, fpSize=morgan_nbits)
+        self.morgan_ECFP6 = FG.GetMorganGenerator(radius=3, fpSize=morgan_nbits)
+        self.rdkit = FG.GetRDKitFPGenerator(fpSize=rdkit_nbits)
+        self.atom_pair = FG.GetAtomPairGenerator(fpSize=atom_pair_nbits)
+        self.torsion = FG.GetTopologicalTorsionGenerator(fpSize=torsion_nbits)
+
+    def get_morgan_ecfp4(self, mol: Chem.Mol) -> np.ndarray:
+        return np.array(self.morgan_ECFP4.GetFingerprint(mol))
+
+    def get_morgan_ecfp6(self, mol: Chem.Mol) -> np.ndarray:
+        return np.array(self.morgan_ECFP6.GetFingerprint(mol))
+
+    def get_rdkit_fp(self, mol: Chem.Mol) -> np.ndarray:
+        return np.array(self.rdkit.GetFingerprint(mol))
+
+    def get_atom_pair_fp(self, mol: Chem.Mol) -> np.ndarray:
+        return np.array(self.atom_pair.GetFingerprint(mol))
+
+    def get_torsion_fp(self, mol: Chem.Mol) -> np.ndarray:
+        return np.array(self.torsion.GetFingerprint(mol))
+
+    def get_maccs_fp(self, mol: Chem.Mol) -> np.ndarray:
+        return np.array(MACCSkeys.GenMACCSKeys(mol))
+    
+    def get_avalon_fp(self, mol: Chem.Mol) -> np.ndarray:
+        return np.array(pyAvalonTools.GetAvalonFP(mol))
+

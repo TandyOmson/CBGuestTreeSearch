@@ -1,0 +1,10 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def reward_func(u_score, max_density):
+    return 1 - ((u_score*(1+(2*max_density)))/(u_score + max_density))
+
+
+arr = np.linspace(0.0, 0.5, 100)
+
+vals = [reward_func(i, 0.3) for i in arr]

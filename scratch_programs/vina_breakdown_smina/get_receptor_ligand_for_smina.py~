@@ -1,0 +1,7 @@
+from rdkit import Chem
+
+mol = Chem.MolFromMolFile("complex.sdf", removeHs=False)
+host, guest = Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=True)
+
+Chem.MolToMolFile(host, "host.sdf")
+Chem.MolToMolFile(guest, "guest.sdf")

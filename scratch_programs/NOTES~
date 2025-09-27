@@ -1,0 +1,48 @@
+#-------------------------------------#
+# Fingerprint + Decomposition Testing #
+#-------------------------------------#
+I am testing a molecular fingerprint + decomposition pipeline with different fingerprints and 2D decomposition algorithms. This will provide a training set whose goal is fit an RNN for predicting the next sequence in a SMILES string such that molecules can be generated and easily characterised by their rarity in relation to the training set. As a result, I want the distribution of molecules in the decomposed space to take on a smooth Guassian character, such that a kernel density estimation will provide a smoothly varying surface that can estimate the rarity of a molecule. I have thought through a testing process for fingerprint + decomposition:
+1. Visual distribution
+2. Gaussianity tests (skewness, kurtosis, KL divergence)
+3. Leave out validation data using both Butina clustered stratified samples and random samples, then see how it is projected in decomposition space
+4. Cluster data via kde contours, and check size distribution of clusters
+5. Correlation between tanimoto distance in fp space and distance in decomposed space
+6. stability under random addition of noise or removal of information from fingerprints, or under removal of density outliers
+7. cluster overlap in fingerprint space and decomposition space
+8. intrinsic dimensionality prediction
+
+I should also do some common sense checks on how molecules look, chemical intution etc.
+Later I could even look at smoothness of physiochemical properties in decomposed space.
+
+Tests 	      	   	   	Markers	 	Description	
+Visual distribution		Qualitative	2D scatter, KDE contours
+Gaussianity tests		Quantitative	Skew, kurtosis, KL-divergence
+Validation projection behavior	Quantitative	Projection drift under Butina/Random split
+Cluster analysis		Quantitative	KDE-based cluster size distribution
+FP-decomp distance correlation	Quantitative	Spearman/Pearson between Tanimoto and 2D distances
+Stability under perturbations	Quantitative	Mean projection shift after noise/dropout
+Cluster overlap FP vs decomp	Quantitative	Jaccard index / AMI between cluster labels
+Intrinsic dimensionality	Quantitative	PCA / Two-NN / MLE estimates
+
+Try the quantitative assessments for all fingperint-decomposition combos, do visualisations for a few candidates
+
+#-----------------------------------------------------------------#
+# RNN training, hyperparameter tuning, random molecule generation #
+#-----------------------------------------------------------------#
+Then, we use the kde clusters to attempt to even the distribution of randomly generated molecules by the RNN:
+- Underepresented class weighting
+- SMILES augmentation to balance the training set
+- Reinforcment learning (last resort)
+
+RNN hyperparameter tuning conducted (chemts_2_gpu conda env on workstation)
+Test the distribution of randomly generated molecules with fingerprint+decomposition embedding
+
+#------#
+# MCTS #
+#------#
+Run MCTS attempting to optimise the rarity of the generated molecule, either based on:
+- kernel density estimate of generated molecules on density scale of training set
+- maximum distance from maximum density point
+- minimum distance to arbitrary points in the decomposed space
+- augmentation of training set to bias towards desired molecules
+This can then be included as a multiobjective optimisation, multiple MCTS runs to explore the decomposed space, or as post-hoc analysis

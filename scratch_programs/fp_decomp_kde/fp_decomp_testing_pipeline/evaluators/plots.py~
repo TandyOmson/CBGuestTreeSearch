@@ -1,0 +1,12 @@
+""" Plotting functions
+"""
+
+def plot_kde_contours_2D(X, ax):
+    return
+
+def plot_decomp_2D(X, ax, **plot_kwargs):
+    ax.scatter(X[:,0], X[:,1], plot_kwargs)
+    return
+
+def plot_cluster_lens_bar(cluster_lens, ax):
+    return

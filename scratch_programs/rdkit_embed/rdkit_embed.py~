@@ -1,0 +1,13 @@
+from rdkit import Chem
+from rdkit.Chem import AllChem
+
+def robust_embed(mol):
+    mol = Chem.AddHs(mol)
+
+    res = AllChem.EmbedMolecule(mol)
+    if res == -1:
+        res = AllChem.EmbedMolecule(mol, useBasicKnowledge=False)
+        if res == -1:
+            raise Exception
+        else:
+            AllChem.MMFFOptimizeMolecule(mol)
