@@ -13,10 +13,10 @@ for count, smi in enumerate(smis):
     print("SMILES string {} of {}, ({} duplicate, {} invalid, {} too big)".format(count, len(smis), duplicate_mol_count, invalid_mol_count, too_big_count), end="\r")
 
     mol = Chem.MolFromSmiles(smi)
-    if not mol:
+    if mol == None:
         invalid_mol_count += 1
         continue
-    elif  mol.GetNumHeavyAtoms() > 20:
+    elif mol.GetNumHeavyAtoms() > 20:
         too_big_mol_count += 1    
         continue
     canon_smi = Chem.MolToSmiles(mol, isomericSmiles=True, kekuleSmiles=True, canonical=True)
