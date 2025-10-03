@@ -3,16 +3,32 @@ import tempfile
 import vina
 import subprocess as sp
 import traceback
+import pickle
 
 import vina
 from meeko import MoleculePreparation, PDBQTWriterLegacy, PDBQTMolecule, RDKitMolCreate
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem import rdFingerprintGenerator
 
 from chemtsv2.abc import Reward
 from reward.vina_boltz_utils import *
 from reward.descriptor_calcs import *
 
+# Global
+pipe = None
+kde = None
+
+def init_pipe_kde(conf):
+    global pipe, kde
+    if pipe is None:
+        print("Loading mol embedding pipe and KDE in process...")
+        with open(conf["mol_embed_pipeline"], "rb") as fr:
+            pipe = pickle.load(fr)
+    if kde is None:
+        with open(conf["kde"], "rb") as fr:
+            kde = pickle.load(fr)
+            
 # Class for functions
 class CrestVinaCalc():
     def __init__(self, rundir):
@@ -210,21 +226,12 @@ class Vina_reward(Reward):
                     return None
 
         def uniq_score(mol):
-            global pipe
-            global kde
-            if pipe is None:
-                with open(conf["mol_embed_pipeline"], "rb") as fr:
-                    pipe = pickle.load(fr)
-
+            init_pipe_kde(conf)
             # molecule fingerprint
             fp = [rdFingerprintGenerator.GetAtomPairGenerator().GetFingerprint(mol)]
             # position in pca space
             X_pca = pipe.transform(fp)
 
-            # load kernel density estimation
-            if kde is None:
-                with open(conf["kde"], "rb") as fr:
-                    kde = pickle.load(fr)
             nearby_density = np.exp(kde.score_samples(X_pca)[0])
             
             return nearby_density, conf["max_density"], X_pca[0]
@@ -249,4 +256,4 @@ class Vina_reward(Reward):
         u_base = 0.3
         u_reward = 1 - ((u_score*(1+((1/u_base)*max_density)))/(u_score + max_density))
 
-        return vina_reward + u_reward/4
+        return vina_reward + u_reward/2
