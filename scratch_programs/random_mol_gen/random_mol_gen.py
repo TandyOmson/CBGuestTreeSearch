@@ -94,7 +94,7 @@ def build_smiles_from_token_index(generated_token_indexes, tokens, use_selfies=F
 
 if __name__ == "__main__":
 
-    model_dir = "/home/andyt/DProjects/DMCTS/VINA_ChemTSv2/model/HC_even_augment"
+    model_dir = "/home/tcl25/CBGuestTreeSearch/model/HC_02_10_25"
 
     logger = getLogger()
 

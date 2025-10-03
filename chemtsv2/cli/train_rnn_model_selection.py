@@ -18,7 +18,7 @@ import keras_tuner
 
 from chemtsv2.preprocessing import read_smiles_dataset, tokenize_smiles
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Hide all GPUs
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Hide all GPUs
 #tf.config.threading.set_intra_op_parallelism_threads(44)
 #tf.config.threading.set_inter_op_parallelism_threads(2)
 
@@ -87,7 +87,7 @@ class RnnHyperModel(keras_tuner.HyperModel):
                 input_shape=(self.X_len, len(self.token_list)),
                 activation="tanh",
                 dropout=hp.Float("dropout_rate_GRU_1", min_value=0.0, max_value=0.5, step=0.1),
-                recurrent_dropout=hp.Float("rec_dropout_GRU_2", min_value=0.0, max_value=0.5, step=0.1),
+                recurrent_dropout=hp.Float("rec_dropout_GRU_1", min_value=0.0, max_value=0.5, step=0.1),
                 return_sequences=True,
             )
         )
@@ -128,7 +128,7 @@ class RnnHyperModel(keras_tuner.HyperModel):
         return model.fit(
             *args,
             # Could add 16 for very small datasets
-            batch_size=hp.Choice("batch_size", [256, 128, 64, 32])
+            batch_size=hp.Choice("batch_size", values=[256, 128, 64, 32]),
             **kwargs,
         )
 
@@ -246,7 +246,6 @@ def main():
     )
     callbacks = [early_stopping]
 
-    # try batch sizes 32, 64, 128
     tuner.search(X,
                  y_train_one_hot,
                  epochs = conf["epoch"],
