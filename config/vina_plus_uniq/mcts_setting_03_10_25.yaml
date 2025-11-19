@@ -2,14 +2,14 @@
 c_val: 0.5
 # threshold_type: [time, generation_num]
 threshold_type: time
-hours: 0.1
-generation_num: 100
-output_dir: result/tes
+hours: 1
+generation_num: 1000
+output_dir: result/test
 model_setting:
-  model_dir: model/HC_hydros8992_21_09_25
-  model_json: model/HC_hydros8992_21_09_25/model.tf25.json
-  model_weight: model/HC_hydros8992_21_09_25/model.tf25.best.ckpt.h5
-token: model/HC_hydros8992_21_09_25/tokens.pkl
+  model_dir: model/HC_02_10_25
+  model_json: model/HC_02_10_25/model.tf25.json
+  model_weight: model/HC_02_10_25/model.tf25.best.ckpt.h5
+token: model/HC_02_10_25/tokens.pkl
 reward_setting:
   reward_module: reward.vina_desc_hc_plus_unique
   reward_class: Vina_reward
@@ -60,21 +60,21 @@ include_filter_result_in_reward: False
 
 #parallelization strategy
 leaf_parallel: True
-leaf_parallel_num: 2
+leaf_parallel_num: 5
 
 # User setting
-mol_embed_pipeline: /home/andyt/DProjects/DMCTS/VINA_ChemTSv2/data/HCs/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
-kde: /home/andyt/DProjects/DMCTS/VINA_ChemTSv2/data/HCs/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
+mol_embed_pipeline: /home/tcl25/CBGuestTreeSearch/data/HCs/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
+kde: /home/tcl25/CBGuestTreeSearch/data/HCs/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
 # For uniqueness, either max_density_point (distance from), or kde (minimise kernel density estimate)
 max_density_point: [-0.10134852, -0.05087803]
 max_density: 0.40
 
 # Vina utils (contains host.sdf and vinadock.inp)
-vina_boltz_utils: /home/andyt/DProjects/DMCTS/VINA_ChemTSv2/reward/vina_boltz_utils
+vina_boltz_utils: /home/tcl25/CBGuestTreeSearch/reward/vina_boltz_utils
 
 # Reward settings
-num_crest_procs: 4
-num_crest_confs: 4
-vina_comps: 4
-boltz_comps: 4
+num_crest_procs: 8
+num_crest_confs: 10
+vina_comps: 10
+boltz_comps: 5
 vina_base_score: -10.0
