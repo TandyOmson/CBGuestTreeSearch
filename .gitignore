@@ -10,6 +10,7 @@ scratch_programs/vina_breakdown_smina/results/
 scratch_programs/random_mol_gen/results/
 scratch_programs/fp_decomp_kde/results/
 scratch_programs/fp_decomp_kde/fp_decomp_testing_pipeline/results/
+scratch_programs/fp_interpretation/
 scratch_programs/dataset_benchmarks/results/
 
 # But don't ignore the folders themselves
