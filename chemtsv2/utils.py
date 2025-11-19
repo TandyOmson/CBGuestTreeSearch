@@ -184,7 +184,7 @@ def load_tensorflow_model(model_weight, logger, conf):
     return model
 
 
-def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger, gids):
+def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger, gids, parallel=None):
     node_index = []
     valid_compound = []
     generated_ids = []
@@ -245,7 +245,7 @@ def evaluate_node(new_compound, generated_dict, reward_calculator, conf, logger,
         return [f(mol) for f in reward_calculator.get_objective_functions(conf)]
 
     if conf["leaf_parallel"]:
-        values_list = joblib.Parallel(n_jobs=conf["leaf_parallel_num"])(
+        values_list = parallel(
             joblib.delayed(_get_objective_values)(m, c)
             for m, c in zip(valid_mol_list, valid_conf_list)
         )

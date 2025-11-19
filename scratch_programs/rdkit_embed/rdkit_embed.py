@@ -4,6 +4,7 @@ from joblib import Parallel, delayed
 import pandas as pd
 import sys
 import os
+import subprocess as sp
 
 def robust_embed(mol):
     if mol == None:
@@ -21,17 +22,38 @@ def robust_embed(mol):
 
     return mol
 
-def process_smi(smi, idx, nullmol, outdir):
+def openbabel_embed(smi):
+    obabel_cmd = 'echo "{}" | obabel -ismi -osdf --gen3d best --minimize'
+    res = sp.run(obabel_cmd.format(smi),
+                 shell=True,
+                 capture_output=True,
+                 text=True,
+                 )
+    
+    mol = Chem.MolFromMolBlock(res.stdout, removeHs=False)
+    if mol == None:
+        print(smi)
+        print(res.stderr)
+        raise Exception
+
+    return mol
+
+def process_smi(smi, idx, nullmol, outdir, write_individual=False):
     mol = Chem.MolFromSmiles(smi)
+    
     if mol is None:
         mol = nullmol
     try:
         mol = robust_embed(mol)
     except:
-        mol = nullmol
-    # Write individual file
-    Chem.MolToMolFile(mol, os.path.join(outdir, f"mol_{idx}.sdf"))
-    return mol  # Return for writing to all.sdf later
+        try:
+            mol = openbabel_embed(smi)
+        except:
+            mol = nullmol
+        
+    if write_individual:
+        Chem.MolToMolFile(mol, os.path.join(outdir, f"mol_{idx}.sdf"))
+    return mol
 
 if __name__ == "__main__":
     smis = [i.rstrip() for i in open(sys.argv[1], "r").readlines()]
@@ -47,6 +69,6 @@ if __name__ == "__main__":
 
     # Collect into single SDF
     writer = Chem.SDWriter(os.path.join(outdir, "all.sdf"))
-    for mol in results:
-        writer.write(mol)
+    for count, mol in enumerate(results):
+        writer.write(mol)           
     writer.close()

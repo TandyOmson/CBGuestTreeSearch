@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import pickle
 
+from joblib import Parallel
+
 from chemtsv2.utils import (
     generate_smiles_as_token_index,
     build_smiles_from_token_index,
@@ -102,6 +104,12 @@ class MCTS:
         self.generated_id_list = []
         self.filter_check_list = []
         self.total_valid_num = 0
+
+        if conf["leaf_parallel"]:
+            self.parallel = Parallel(
+                    n_jobs=conf["leaf_parallel_num"],
+                    prefer="processes",
+                )
 
         if conf["batch_reward_calculation"]:
             self.obj_column_names = [
@@ -251,20 +259,38 @@ class MCTS:
                     for i, c in enumerate(new_compound)
                 ])
             )
-            (
-                node_index,
-                objective_values,
-                valid_smiles,
-                generated_id_list,
-                filter_check_list,
-            ) = evaluate_node(
-                new_compound,
-                self.generated_dict,
-                self.reward_calculator,
-                self.conf,
-                self.logger,
-                _gids,
-            )
+            if conf["leaf_parallel"]:
+                (
+                    node_index,
+                    objective_values,
+                    valid_smiles,
+                    generated_id_list,
+                    filter_check_list,
+                ) = evaluate_node(
+                    new_compound,
+                    self.generated_dict,
+                    self.reward_calculator,
+                    self.conf,
+                    self.logger,
+                    _gids,
+                    parallel=self.parallel
+                )
+            else:
+                                (
+                    node_index,
+                    objective_values,
+                    valid_smiles,
+                    generated_id_list,
+                    filter_check_list,
+                ) = evaluate_node(
+                    new_compound,
+                    self.generated_dict,
+                    self.reward_calculator,
+                    self.conf,
+                    self.logger,
+                    _gids,
+                )
+
 
             if len(valid_smiles) == 0:
                 back_propagation(node, reward=-1.0)
