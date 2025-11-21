@@ -259,7 +259,7 @@ class MCTS:
                     for i, c in enumerate(new_compound)
                 ])
             )
-            if conf["leaf_parallel"]:
+            if self.conf["leaf_parallel"]:
                 (
                     node_index,
                     objective_values,

@@ -15,25 +15,45 @@ from chemtsv2.abc import Reward
 from reward.vina_boltz_utils import *
 from reward.descriptor_calcs import *
 
-# Global
-pipe = None
-kde = None
+# TEMPORARY FIX FOR INCONSISTENT VERSION WARNING WHEN WORKING WITH PIPE AND KDE
+# I need to just create pipe and kde in sklearn version 1.7.0
+import warnings
+from sklearn.exceptions import InconsistentVersionWarning
+
+# Suppress only InconsistentVersionWarning
+warnings.filterwarnings('ignore', category=InconsistentVersionWarning)
 
 def init_pipe_kde(conf):
-    global pipe, kde
-    if pipe is None:
-        print("Loading mol embedding pipe and KDE in process...")
-        with open(conf["mol_embed_pipeline"], "rb") as fr:
-            pipe = pickle.load(fr)
-    if kde is None:
-        with open(conf["kde"], "rb") as fr:
-            kde = pickle.load(fr)
+    with open(conf["mol_embed_pipeline"], "rb") as fr:
+        pipe = pickle.load(fr)
+
+    with open(conf["kde"], "rb") as fr:
+        kde = pickle.load(fr)
+
+    return pipe, kde
             
 # Class for functions
 class CrestVinaCalc():
     def __init__(self, rundir):
         # rundir is the directory to place all files and run subprocesses
         self.rundir = rundir
+
+    def run_rdkit_confgen(self, guest, n_confs, nprocs):
+        """ Embeds mutliple conformers and optimizes them with MMFF94
+            Returns conformers and energies
+        """
+        AllChem.EmbedMultipleConfs(guest, n_confs)
+        ens = [i[1] for i in AllChem.MMFFOptimizeMoleculeConfs(guest, numThreads=nprocs)]
+        confs = [conf for conf in guest.GetConformers()]
+        
+        mols = []
+        for i, conf in enumerate(confs):
+            mol = Chem.Mol(guest)
+            mol.RemoveAllConformers()
+            mol.AddConformer(conf)
+            mols.append(mol)
+
+        return mols, ens
 
     def run_crest(self, guest, n_confs, nprocs):
         """ Runs CREST on a guest
@@ -57,10 +77,10 @@ class CrestVinaCalc():
 
     def run_vina(self, repsdffile, ligsdffile, n_comps, inp):
         """ Dock a molecule into a host
-        hostfile is a .pdbqt file, use command "obabel host.pdb -O host.pdbqt -xrh" to convert
+        hostfile is a .pdbqt file, use command "obabel host.pdb -O host.pdbqt -xr -xh" to convert
         Sets the vina interaction energy as a MolDoubleProp
         """        
-        sp.run(["obabel", repsdffile, "-O", "host.pdbqt", "-xrh"], cwd=self.rundir, stderr=open(f"{self.rundir}/vina.log", "w"))
+        sp.run(["obabel", repsdffile, "-O", "host.pdbqt", "-xr", "-xh"], cwd=self.rundir, stderr=open(f"{self.rundir}/vina.log", "w"))
         sp.run(["obabel", ligsdffile, "-O", "guest.pdbqt", "-xh"], cwd=self.rundir, stderr=open(f"{self.rundir}/vina.log", "a"))
         
         # Run Vina
@@ -92,7 +112,7 @@ class CrestVinaCalc():
             one_guestmol = Chem.MolFromMolFile(ligsdffile, removeHs=False)
             one_guestmol = add_nitrogen_charges(one_guestmol)
             align_pose = PCA_align_pose(hostmol, one_guestmol)
-            complexmols, vina_ens = self.MMFF94_vina_opt(align_pose, "host.pdbqt")
+            complexmols, vina_ens = self.MMFF94_vina_opt(align_pose, f"{self.rundir}/host.pdbqt")
                 
         return complexmols, vina_ens
 
@@ -131,8 +151,6 @@ class CrestVinaCalc():
 class Vina_reward(Reward):
     def get_objective_functions(conf):
         def VinaScore(mol):
-            #conf["vina_boltz_utils"] = "/home/andyt/DProjects/DMCTS/VINA_ChemTSv2/reward/vina_boltz_utils"
-            # Move this into MCTS config file
             conf["hostfile"] = f"{conf['vina_boltz_utils']}/host.sdf"
             conf["vina_input"] = f"{conf['vina_boltz_utils']}/vinadock.inp"
             # Command for calculating symmetry number
@@ -157,8 +175,15 @@ class Vina_reward(Reward):
                 
                     if conf["debug"]:
                         print("Running CREST...")
-                
-                    crest_confs, crest_ens = calc.run_crest(mol, conf["num_crest_confs"], conf["num_crest_procs"])
+
+                    if conf["confgen"] == "crest":
+                        crest_confs, crest_ens = calc.run_crest(mol, conf["num_crest_confs"], conf["num_crest_procs"])
+                    elif conf["confgen"] == "rdkit":
+                        crest_confs, crest_ens = calc.run_rdkit_confgen(mol, conf["num_crest_confs"], conf["num_crest_procs"])
+                    else:
+                        print("conformer generation (confgen) option not specified, closing...")
+                        raise Exception
+
                     complexmols = []
                     complexens = []
                 
@@ -226,7 +251,7 @@ class Vina_reward(Reward):
                     return None
 
         def uniq_score(mol):
-            init_pipe_kde(conf)
+            pipe, kde = init_pipe_kde(conf)
             # molecule fingerprint
             fp = [rdFingerprintGenerator.GetAtomPairGenerator().GetFingerprint(mol)]
             # position in pca space
@@ -237,7 +262,6 @@ class Vina_reward(Reward):
             return nearby_density, conf["max_density"], X_pca[0]
         
         return [VinaScore, uniq_score]
-
 
     def calc_reward_from_objective_values(values, conf):
         min_inter_score = values[0]

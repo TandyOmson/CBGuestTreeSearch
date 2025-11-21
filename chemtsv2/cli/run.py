@@ -323,8 +323,8 @@ def main():
     mcts.search()
     logger.info("Finished!")
     
-    if conf["leaf_parallel"]:
-        mcts.parallel._terminate_backend()
+    #if conf["leaf_parallel"]:
+    #    mcts.parallel._terminate_backend()
 
 if __name__ == "__main__":
     main()
