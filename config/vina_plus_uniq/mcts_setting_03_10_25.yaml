@@ -69,10 +69,11 @@ kde: /home/tcl25/CBGuestTreeSearch/data/HCs/PCCP_minimal/atom_pair_isomap_kde/kd
 max_density_point: [-0.10134852, -0.05087803]
 max_density: 0.40
 
-# Vina utils (contains host.sdf and vinadock.inp)
+# Vina utils (contains host.sdf, vinadock.inp and program for calculating symmetry number)
 vina_boltz_utils: /home/tcl25/CBGuestTreeSearch/reward/vina_boltz_utils
 
 # Reward settings
+confgen: rdkit
 num_crest_procs: 8
 num_crest_confs: 10
 vina_comps: 10
