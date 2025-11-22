@@ -66,6 +66,7 @@ leaf_parallel_num: 5
 mol_embed_pipeline: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
 kde: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
 # For uniqueness, either max_density_point (distance from) or min_density_point (distance to)
+max_density_point: None
 min_density_point: [0.75, 0.75]
 max_density: 0.40
 

@@ -18,7 +18,7 @@
 #chemtsv2 -c config/uniqueness_score_configs/MACCS_isomap_dist.yaml
 #chemtsv2 -c config/uniqueness_score_configs/MACCS_isomap_kde.yaml
 
-python3 chemtsv2/cli/run.py -c config/vina_plus_uniq/mcts_setting_03_10_25.yaml
+python3 chemtsv2/cli/run.py -c config/vina_plus_uniq/22_11_25_quadrant_4.yaml
 
 
 
