@@ -266,7 +266,11 @@ class Vina_reward(Reward):
     def calc_reward_from_objective_values(values, conf):
         min_inter_score = values[0]
 
-        u_score = values[1][0]
+        if conf["max_density_point"]:
+            u_score = values[1][0]
+        elif conf["min_density_point"]:
+            u_score = -values[1][0]
+            
         max_density = values[1][1]
         
         if min_inter_score is None:

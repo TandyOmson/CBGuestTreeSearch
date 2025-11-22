@@ -1,0 +1,81 @@
+# Basic setting
+c_val: 0.5
+# threshold_type: [time, generation_num]
+threshold_type: time
+hours: 30
+generation_num: 10000
+output_dir: result/22_11_25_quadrant_1
+model_setting:
+  model_dir: model/HC_02_10_25
+  model_json: model/HC_02_10_25/model.tf25.json
+  model_weight: model/HC_02_10_25/model.tf25.best.ckpt.h5
+token: model/HC_02_10_25/tokens.pkl
+reward_setting:
+  reward_module: reward.vina_desc_hc_plus_unique
+  reward_class: Vina_reward
+
+# Advanced setting
+expansion_threshold: 0.995
+simulation_num: 3
+flush_threshold: -1
+policy_setting: 
+  policy_module: policy.ucb1
+  policy_class: Ucb1
+
+# Restart setting
+save_checkpoint: False
+restart: False
+checkpoint_file: chemtsv2.ckpt.pkl
+
+# Filter setting
+use_lipinski_filter: False
+lipinski_filter:
+  module: filter.lipinski_filter
+  class: LipinskiFilter
+  type: rule_of_5
+use_radical_filter: False
+radical_filter:
+  module: filter.radical_filter
+  class: RadicalFilter
+use_pubchem_filter: False
+pubchem_filter:
+  module: filter.pubchem_filter
+  class: PubchemFilter
+use_sascore_filter: False
+sascore_filter:
+  module: filter.sascore_filter
+  class: SascoreFilter
+  threshold: 3.5
+use_ring_size_filter: False
+ring_size_filter:
+  module: filter.ring_size_filter
+  class: RingSizeFilter
+  threshold: 6
+use_pains_filter: False
+pains_filter:
+  module: filter.pains_filter
+  class: PainsFilter
+  type: [pains_a]
+include_filter_result_in_reward: False
+
+#parallelization strategy
+leaf_parallel: True
+leaf_parallel_num: 5
+
+# User setting
+mol_embed_pipeline: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
+kde: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
+# For uniqueness, either max_density_point (distance from) or min_density_point (distance to)
+min_density_point: [0.75, 0.75]
+max_density: 0.40
+
+# Vina utils (contains host.sdf, vinadock.inp and program for calculating symmetry number)
+vina_boltz_utils: /home/tcl25/CBGuestTreeSearch/reward/vina_boltz_utils
+
+# Reward settings
+confgen: rdkit
+num_crest_procs: 8
+num_crest_confs: 10
+vina_comps: 10
+boltz_comps: 5
+vina_base_score: -10.0
