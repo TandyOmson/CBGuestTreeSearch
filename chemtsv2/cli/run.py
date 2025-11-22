@@ -15,7 +15,7 @@ from rdkit import RDLogger
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, model_from_json  # pyright: ignore[reportMissingImports]
 from tensorflow.keras.layers import Dense, Embedding, GRU  # pyright: ignore[reportMissingImports]
-tf.compat.v1.disable_eager_execution()
+tf.compat.v1.enable_eager_execution()
 
 from chemtsv2.mcts import MCTS, State
 #from chemtsv2.utils import load_tensorflow_model, get_model_structure_info
@@ -234,7 +234,7 @@ def main():
         conf = yaml.load(f, Loader=yaml.SafeLoader)
     set_default_config(conf)
     os.makedirs(conf["output_dir"], exist_ok=True)
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1" if args.gpu is None else args.gpu
+    os.makedirs(f"{conf['output_dir']}/3D_pose", exist_ok=True)
 
     # set log level
     conf["debug"] = args.debug
@@ -247,6 +247,8 @@ def main():
         logger.info("Use GPUs exclusively for reward caluculations")
         tf.config.set_visible_devices([], "GPU")
 
+    logger.debug("--debug is present, there will be a lot of output...")
+
     if args.debug:
         conf["fix_random_seed"] = True
         conf["random_seed"] = 1234
@@ -258,12 +260,16 @@ def main():
     reward_calculator = getattr(import_module(rs["reward_module"]), rs["reward_class"])
     ps = conf["policy_setting"]
     policy_evaluator = getattr(import_module(ps["policy_module"]), ps["policy_class"])
+    logger.debug("loaded reward modules")
 
     # model config
+    logger.debug("loading tensorflow model...")
     with open(conf["model_setting"]["model_json"], "r") as fr:
         loaded_model_json = fr.read()
         loaded_model = model_from_json(loaded_model_json)
-
+    logger.debug("model loaded from json")
+    
+    logger.debug("loaded model, getting layers...")
     for layer in loaded_model.get_config()["layers"]:
         config = layer.get("config")
         if layer.get("class_name") == "InputLayer":
@@ -272,13 +278,15 @@ def main():
             conf["rnn_vocab_size"] = config["input_dim"]
         if layer.get("class_name") == "TimeDistributed":
             conf["rnn_output_size"] = config["layer"]["config"]["units"]
-
+    
     rnn_config_file = conf["model_setting"]["model_dir"] + "/rnn_model_setting.yaml"
+    
     with open(rnn_config_file, "r") as f:
         rnn_conf = yaml.load(f, Loader=yaml.SafeLoader)
         conf.update(rnn_conf)
 
     model = load_tensorflow_model(conf["model_setting"]["model_weight"], logger, conf)
+    logger.debug("done")
 
     if args.input_smiles is not None:
         logger.info(f"Extend mode: input SMILES = {args.input_smiles}")
@@ -294,6 +302,7 @@ def main():
     elif conf["threshold_type"] == "generation_num":
         conf.pop("hours")
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1" if args.gpu is None else args.gpu
     logger.info("========== Configuration ==========")
     for k, v in conf.items():
         logger.info(f"{k}: {v}")
@@ -319,7 +328,7 @@ def main():
         reward_calculator=reward_calculator,
         policy_evaluator=policy_evaluator,
         logger=logger,
-    )
+    )        
     mcts.search()
     logger.info("Finished!")
     

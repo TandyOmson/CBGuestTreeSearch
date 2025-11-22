@@ -2,9 +2,9 @@
 c_val: 0.5
 # threshold_type: [time, generation_num]
 threshold_type: time
-hours: 1
-generation_num: 1000
-output_dir: result/test
+hours: 14
+generation_num: 10000
+output_dir: result/21_11_25
 model_setting:
   model_dir: model/HC_02_10_25
   model_json: model/HC_02_10_25/model.tf25.json
@@ -63,8 +63,8 @@ leaf_parallel: True
 leaf_parallel_num: 5
 
 # User setting
-mol_embed_pipeline: /home/tcl25/CBGuestTreeSearch/data/HCs/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
-kde: /home/tcl25/CBGuestTreeSearch/data/HCs/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
+mol_embed_pipeline: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
+kde: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
 # For uniqueness, either max_density_point (distance from), or kde (minimise kernel density estimate)
 max_density_point: [-0.10134852, -0.05087803]
 max_density: 0.40
