@@ -265,7 +265,7 @@ class Vina_reward(Reward):
             
             return nearby_density, conf["max_density"], X_pca[0]
         
-        return [VinaScore, uniq_score_low_density]
+        return [VinaScore, uniq_score]
 
     def calc_reward_from_objective_values(values, conf):
         min_inter_score = values[0]
