@@ -4,7 +4,7 @@ c_val: 0.5
 threshold_type: time
 hours: 30
 generation_num: 10000
-output_dir: result/22_11_25_quadrant_1
+output_dir: result/22_11_25_quadrant_4
 model_setting:
   model_dir: model/HC_02_10_25
   model_json: model/HC_02_10_25/model.tf25.json
@@ -63,15 +63,15 @@ leaf_parallel: True
 leaf_parallel_num: 5
 
 # User setting
-mol_embed_pipeline: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
-kde: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
+mol_embed_pipeline: data/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
+kde: data/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
 # For uniqueness, either max_density_point (distance from) or min_density_point (distance to)
 max_density_point: None
 min_density_point: [-0.75, 0.75]
-max_density: 0.40
+max_density: None
 
 # Vina utils (contains host.sdf, vinadock.inp and program for calculating symmetry number)
-vina_boltz_utils: /home/tcl25/CBGuestTreeSearch/reward/vina_boltz_utils
+vina_boltz_utils: reward/vina_boltz_utils
 
 # Reward settings
 confgen: rdkit

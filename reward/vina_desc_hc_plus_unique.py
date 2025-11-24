@@ -251,6 +251,10 @@ class Vina_reward(Reward):
                     return None
 
         def uniq_score(mol):
+            """ An objective function calculating nearby density and decomposed space position
+                based on training set kde fitting
+            """
+            
             pipe, kde = init_pipe_kde(conf)
             # molecule fingerprint
             fp = [rdFingerprintGenerator.GetAtomPairGenerator().GetFingerprint(mol)]
@@ -261,18 +265,29 @@ class Vina_reward(Reward):
             
             return nearby_density, conf["max_density"], X_pca[0]
         
-        return [VinaScore, uniq_score]
+        return [VinaScore, uniq_score_low_density]
 
     def calc_reward_from_objective_values(values, conf):
         min_inter_score = values[0]
 
-        if conf["max_density_point"]:
-            u_score = values[1][0]
-        elif conf["min_density_point"]:
-            u_score = -values[1][0]
-            
+        # Options of how to use kde density data
         max_density = values[1][1]
         
+        # maximise distance from a chosen point in decomposed space
+        if conf["max_density_point"]:
+            X_pca = values[1][2]
+            distance = (1 - float(np.linalg.norm(np.array(conf["max_density_point"]) - X_pca))
+            u_base = 0.6
+        # minimise distnace from a chosen point in decomposed space
+        elif conf["min_density_point"]:
+            X_pca= values[1][2]
+            distance = float(np.linalg.norm(np.array(conf["min_density_point"]) - X_pca))
+            u_base = 0.3
+        # minimise density
+        elif conf["max_density"]:
+            u_score = values[1][0]
+            u_base = 0.3
+            
         if min_inter_score is None:
             return -1
         
@@ -281,7 +296,6 @@ class Vina_reward(Reward):
         steepness = 0.3
         vina_reward =  -score_diff * steepness / (1 + abs(score_diff) * steepness)
 
-        u_base = 0.3
         u_reward = 1 - ((u_score*(1+((1/u_base)*max_density)))/(u_score + max_density))
 
-        return vina_reward + u_reward/2
+        return vina_reward + u_reward
