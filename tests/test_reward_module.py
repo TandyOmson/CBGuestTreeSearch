@@ -49,6 +49,10 @@ os.chdir("./../")
 # modify sys path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+conf["mol_embed_pipeline"] = os.getcwd() + "/" + conf["mol_embed_pipeline"]
+conf["kde"] = os.getcwd() + "/" + conf["kde"]
+conf["vina_boltz_utils"] = os.getcwd() + "/" + conf["vina_boltz_utils"]
+
 # Setup environement for call of reward module
 # This is in the /chemtsv2/utils.py evaulate_mode method
 rs = conf["reward_setting"]
