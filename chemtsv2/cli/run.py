@@ -236,6 +236,11 @@ def main():
     os.makedirs(conf["output_dir"], exist_ok=True)
     os.makedirs(f"{conf['output_dir']}/3D_pose", exist_ok=True)
 
+    # set paths for reward functions
+    conf["mol_embed_pipeline"] = os.getcwd() + "/" + conf["mol_embed_pipeline"]
+    conf["kde"] = os.getcwd() + "/" + conf["kde"]
+    conf["vina_boltz_utils"] = os.getcwd() + "/" + conf["vina_boltz_utils"]
+
     # set log level
     conf["debug"] = args.debug
     log_level = DEBUG if args.debug else INFO
