@@ -276,7 +276,7 @@ class Vina_reward(Reward):
         # maximise distance from a chosen point in decomposed space
         if conf["max_density_point"]:
             X_pca = values[1][2]
-            distance = (1 - float(np.linalg.norm(np.array(conf["max_density_point"]) - X_pca))
+            distance = 1 - float(np.linalg.norm(np.array(conf["max_density_point"]) - X_pca))
             u_base = 0.6
         # minimise distnace from a chosen point in decomposed space
         elif conf["min_density_point"]:
