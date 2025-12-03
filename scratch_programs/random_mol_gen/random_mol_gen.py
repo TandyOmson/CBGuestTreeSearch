@@ -10,6 +10,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import rdmolops 
 from rdkit import RDLogger
+import selfies as sf
 import numpy as np
 from numpy.random import default_rng
 import pickle
@@ -94,7 +95,7 @@ def build_smiles_from_token_index(generated_token_indexes, tokens, use_selfies=F
 
 if __name__ == "__main__":
 
-    model_dir = "/home/tcl25/CBGuestTreeSearch/model/HC_02_10_25"
+    model_dir = "/home/tcl25/CBGuestTreeSearch/model/HC_03_12_25"
 
     logger = getLogger()
 
@@ -161,6 +162,7 @@ if __name__ == "__main__":
     count = 0
 
     outfile = "valid.smi"
+    gen_smis = []
     with open(outfile, "w") as fw:
         while valid_count < num_random:
             print(f"running: {count}, valid count: {valid_count}", end="\r")
@@ -173,6 +175,7 @@ if __name__ == "__main__":
                 build_smiles_from_token_index(
                     generated_token_indexes,
                     tokens,
+                    use_selfies=conf["use_selfies"]
                 )
             )
             
@@ -184,8 +187,18 @@ if __name__ == "__main__":
                 continue
             
             fw.write(f"{new_compound[0]}\n")
+            gen_smis.append(new_compound[0])
             count += 1
             valid_count += 1
 
+    #check for duplicates
+    duplicate_count = 0
+    canon_gen_smis = []
+    for smi in gen_smis:
+        mol = Chem.MolFromSmiles(smi)
+        canon_smi = Chem.MolToSmiles(mol, isomericSmiles=True, kekuleSmiles=True, canonical=True)
+        if canon_smi in canon_gen_smis:
+            duplicate_count += 1
+            
     print(f"valid count, {valid_count} of {count}, {(valid_count/count)*100}%")
-
+    print(f"{duplicate_count} duplicate molecules")
