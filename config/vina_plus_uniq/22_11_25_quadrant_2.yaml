@@ -2,7 +2,7 @@
 c_val: 0.5
 # threshold_type: [time, generation_num]
 threshold_type: time
-hours: 30
+hours: 6
 generation_num: 10000
 output_dir: result/22_11_25_quadrant_2
 model_setting:

@@ -1,10 +1,10 @@
 # Basic setting
-c_val: 0.5
+c_val: 0.7
 # threshold_type: [time, generation_num]
 threshold_type: time
-hours: 1
+hours: 24
 generation_num: 10000
-output_dir: result/22_11_25_quadrant_4
+output_dir: result/2_12_25_quadrant_4
 model_setting:
   model_dir: model/HC_02_10_25
   model_json: model/HC_02_10_25/model.tf25.json
