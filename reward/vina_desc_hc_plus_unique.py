@@ -298,4 +298,4 @@ class Vina_reward(Reward):
 
         u_reward = 1 - ((u_score*(1+((1/u_base)*max_density)))/(u_score + max_density))
 
-        return vina_reward + (4*u_reward)
+        return vina_reward + (2*u_reward)

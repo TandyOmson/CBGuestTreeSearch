@@ -236,13 +236,17 @@ class MCTS:
                     generated_token_indexes = generate_smiles_as_token_index(
                         self.model, position_tmp, self.tokens, self.conf
                     )
-                    new_compound.append(
-                        build_smiles_from_token_index(
-                            generated_token_indexes,
-                            self.tokens,
-                            use_selfies=self.conf["use_selfies"],
+                    try:
+                        new_compound.append(
+                            build_smiles_from_token_index(
+                                generated_token_indexes,
+                                self.tokens,
+                                use_selfies=self.conf["use_selfies"],
+                            )
                         )
-                    )
+                    except:
+                        print("Selfies decoder issue")
+                        continue
 
             _gids = list(range(self.gid, self.gid + len(new_compound)))
             self.gid += len(new_compound)
