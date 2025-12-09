@@ -2,17 +2,18 @@
 c_val: 0.5
 # threshold_type: [time, generation_num]
 threshold_type: time
-hours: 14
+hours: 20
 generation_num: 10000
-output_dir: result/21_11_25
+output_dir: result/06_12_25
 model_setting:
-  model_dir: model/HC_02_10_25
-  model_json: model/HC_02_10_25/model.tf25.json
-  model_weight: model/HC_02_10_25/model.tf25.best.ckpt.h5
-token: model/HC_02_10_25/tokens.pkl
+  model_dir: model/HC_03_12_25
+  model_json: model/HC_03_12_25/model.tf25.json
+  model_weight: model/HC_03_12_25/model.tf25.best.ckpt.h5
+token: model/HC_03_12_25/tokens.pkl
 reward_setting:
   reward_module: reward.vina_desc_hc_plus_unique
   reward_class: Vina_reward
+use_selfies: True
 
 # Advanced setting
 expansion_threshold: 0.995
@@ -63,14 +64,15 @@ leaf_parallel: True
 leaf_parallel_num: 5
 
 # User setting
-mol_embed_pipeline: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
-kde: /home/tcl25/CBGuestTreeSearch/data/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
-# For uniqueness, either max_density_point (distance from), or kde (minimise kernel density estimate)
-max_density_point: [-0.10134852, -0.05087803]
+mol_embed_pipeline: data/PCCP_minimal/atom_pair_isomap_kde/pipe.pkl
+kde: data/PCCP_minimal/atom_pair_isomap_kde/kde.pkl
+# For uniqueness, either max_density_point (distance from) or min_density_point (distance to)
+max_density_point: -1
+min_density_point: -1
 max_density: 0.40
 
 # Vina utils (contains host.sdf, vinadock.inp and program for calculating symmetry number)
-vina_boltz_utils: /home/tcl25/CBGuestTreeSearch/reward/vina_boltz_utils
+vina_boltz_utils: reward/vina_boltz_utils
 
 # Reward settings
 confgen: rdkit

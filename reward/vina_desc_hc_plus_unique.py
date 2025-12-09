@@ -84,7 +84,7 @@ class CrestVinaCalc():
         sp.run(["obabel", ligsdffile, "-O", "guest.pdbqt", "-xh"], cwd=self.rundir, stderr=open(f"{self.rundir}/vina.log", "a"))
         
         # Run Vina
-        sp.run(["vina", f"--config={inp}", "--num_modes=100", "--energy_range=25", "--receptor=host.pdbqt", f"--ligand=guest.pdbqt", f"--out=poses.pdbqt"], cwd=self.rundir, stdout=open(f"{self.rundir}/vina.log","a"))
+        sp.run(["vina", f"--config={inp}", "--exhaustiveness=100", "--num_modes=100", "--energy_range=25", "--receptor=host.pdbqt", f"--ligand=guest.pdbqt", f"--out=poses.pdbqt"], cwd=self.rundir, stdout=open(f"{self.rundir}/vina.log","a"))
         
         # Revert output .pdbqt to .sdf
         sp.run(["obabel", "poses.pdbqt", "-O", "poses.sdf"], cwd=self.rundir, stderr=open(f"{self.rundir}/vina.log","a"))
@@ -298,4 +298,4 @@ class Vina_reward(Reward):
 
         u_reward = 1 - ((u_score*(1+((1/u_base)*max_density)))/(u_score + max_density))
 
-        return vina_reward + (2*u_reward)
+        return vina_reward + u_reward

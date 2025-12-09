@@ -5,5 +5,3 @@ center_z = 0
 size_x = 30
 size_y = 30
 size_z = 30
-
-exhaustiveness = 20
