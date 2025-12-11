@@ -1,9 +1,0 @@
-dataset: data/250k_rndm_zinc_drugs_clean.smi
-output_model_dir: model/user_trained
-output_token: model/user_trained/tokens.pkl
-
-val_set_idxfile: HC_val_set_idxs_kde_clusters.txt
-
-epoch: 2
-batch_size: 128
-maxlen: 82
