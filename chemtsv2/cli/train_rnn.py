@@ -40,9 +40,9 @@ def prepare_data(smiles, all_smiles):
 
 def save_model(model, output_dir, use_selfies=False):
     output_json = os.path.join(
-        output_dir, "model_sf.tf25.json" if use_selfies else "model.tf25.json"
+        output_dir, "model.tf25.json" if use_selfies else "model.tf25.json"
     )
-    output_weight = os.path.join(output_dir, "model_sf.tf25.h5" if use_selfies else "model.tf25.h5")
+    output_weight = os.path.join(output_dir, "model.tf25.h5" if use_selfies else "model.tf25.h5")
     model_json = model.to_json()
 
     with open(output_json, "w") as json_file:
@@ -86,7 +86,7 @@ def main():
     print(f"[INFO] Size of training dataset: {len(original_smiles_list)}")
     if conf["use_selfies"]:
         base, ext = os.path.splitext(conf["output_token"])
-        conf["output_token"] = f"{base}_sf{ext}"
+        conf["output_token"] = f"{base}{ext}"
     with open(conf["output_token"], "wb") as f:
         pickle.dump(token_list, f)
     print(f"[INFO] Generated tokens: {token_list}")
@@ -164,7 +164,7 @@ def main():
     model_ckpt = ModelCheckpoint(
         filepath=os.path.join(
             conf["output_model_dir"],
-            "model_sf.tf25.best.ckpt.h5" if conf["use_selfies"] else "model.tf25.best.ckpt.h5",
+            "model.tf25.best.ckpt.h5" if conf["use_selfies"] else "model.tf25.best.ckpt.h5",
         ),
         monitor="val_accuracy",
         verbose=1,

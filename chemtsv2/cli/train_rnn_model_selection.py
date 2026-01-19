@@ -83,7 +83,7 @@ class RnnHyperModel(keras_tuner.HyperModel):
         # Gated reccurent units (hidden layers)
         model.add(
             GRU(
-                units=hp.Choice("units_GRU_1", values=[64, 128, 256, 512]),
+                units=hp.Choice("units_GRU_1", values=[128, 256, 512]),
                 input_shape=(self.X_len, len(self.token_list)),
                 activation="tanh",
                 dropout=hp.Float("dropout_rate_GRU_1", min_value=0.0, max_value=0.5, step=0.1),
@@ -93,7 +93,7 @@ class RnnHyperModel(keras_tuner.HyperModel):
         )
         model.add(
             GRU(
-                units=hp.Choice("units_GRU_2", values=[64, 128, 256, 512]),
+                units=hp.Choice("units_GRU_2", values=[128, 256, 512]),
                 activation="tanh",
                 dropout=hp.Float("dropout_rate_GRU_2", min_value=0.0, max_value=0.5, step=0.1),
                 recurrent_dropout=hp.Float("rec_dropout_GRU_2", min_value=0.0, max_value=0.5, step=0.1),
@@ -128,7 +128,7 @@ class RnnHyperModel(keras_tuner.HyperModel):
         return model.fit(
             *args,
             # Could add 16 for very small datasets
-            batch_size=hp.Choice("batch_size", values=[256, 128, 64, 32]),
+            batch_size=hp.Choice("batch_size", values=[512, 256, 128]),
             **kwargs,
         )
 

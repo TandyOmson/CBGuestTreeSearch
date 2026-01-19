@@ -162,7 +162,7 @@ if __name__ == "__main__":
         for smi_idx in to_duplicate:
             mol = Chem.MolFromSmiles(train_smis[smi_idx])
             new_smi = Chem.MolToSmiles(mol, doRandom=True)
-            augmented_train_smis.append(train_smis)
+            augmented_train_smis.append(new_smi)
             cluster_augmentation_dict[cluster_labels[smi_idx]] += 1
 
         # add the first val_split*len(to_duplicate) to the validation set

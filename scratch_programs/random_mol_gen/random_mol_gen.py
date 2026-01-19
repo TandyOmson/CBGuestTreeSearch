@@ -95,7 +95,27 @@ def build_smiles_from_token_index(generated_token_indexes, tokens, use_selfies=F
 
 if __name__ == "__main__":
 
-    model_dir = "/home/tcl25/CBGuestTreeSearch/model/HC_03_12_25"
+    parser = argparse.ArgumentParser(
+        description="Generate random mols using a trained RNN",
+        usage="python {os.path.basename(__file__)} -m MODEL_DIRECTORY -o OUTFILE"
+    )
+    parser.add_argument(
+        "-m",
+        "--modeldir",
+        type=str,
+        required=True,
+        help="path to directory with model",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        type=str,
+        required=True,
+    )
+    args = parser.parse_args()
+
+    outfile = args.outfile
+    model_dir = args.modeldir
 
     logger = getLogger()
 
@@ -161,7 +181,6 @@ if __name__ == "__main__":
     valid_count = 0
     count = 0
 
-    outfile = "valid.smi"
     gen_smis = []
     with open(outfile, "w") as fw:
         while valid_count < num_random:
