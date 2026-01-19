@@ -106,13 +106,17 @@ class CrestVinaCalc():
         if len(complexmols) != 0:
             vina_ens, rmsd_lbs, rmsd_ubs = parse_vina_output(f"{self.rundir}/vina.log", exo_ignore=exos)        
         
-        # use aligment docking as as last resort
+        # aligment docking as as last resort
+        # IF I AM GOING TO USE THIS I NEED TO FILTER OUT CLASHES, CURRENTLY COMPLEXES CAN HAVE OVERLAPPING ATOMS
+        #else:
+        #    print("docking by alignment as a last resort...")
+        #    one_guestmol = Chem.MolFromMolFile(ligsdffile, removeHs=False)
+        #    one_guestmol = add_nitrogen_charges(one_guestmol)
+        #    align_pose = PCA_align_pose(hostmol, one_guestmol)
+        #    complexmols, vina_ens = self.MMFF94_vina_opt(align_pose, f"{self.rundir}/host.pdbqt")
         else:
-            print("docking by alignment as a last resort...")
-            one_guestmol = Chem.MolFromMolFile(ligsdffile, removeHs=False)
-            one_guestmol = add_nitrogen_charges(one_guestmol)
-            align_pose = PCA_align_pose(hostmol, one_guestmol)
-            complexmols, vina_ens = self.MMFF94_vina_opt(align_pose, f"{self.rundir}/host.pdbqt")
+            print("No docking pose found...")
+            raise Exception
                 
         return complexmols, vina_ens
 
