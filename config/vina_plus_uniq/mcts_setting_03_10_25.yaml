@@ -2,9 +2,9 @@
 c_val: 0.5
 # threshold_type: [time, generation_num]
 threshold_type: time
-hours: 20
-generation_num: 10000
-output_dir: result/06_12_25
+hours: 100
+generation_num: 50000
+output_dir: result/20_01_26
 model_setting:
   model_dir: model/HC_03_12_25
   model_json: model/HC_03_12_25/model.tf25.json
