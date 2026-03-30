@@ -1,10 +1,13 @@
-from rdkit import Chem
-from rdkit.Chem import AllChem
-from joblib import Parallel, delayed
-import pandas as pd
 import sys
 import os
+import argparse
+import logging
+
+from rdkit import Chem
+from rdkit.Chem import AllChem
 import subprocess as sp
+from joblib import Parallel, delayed
+import pandas as pd
 
 def robust_embed(mol):
     if mol == None:
@@ -56,19 +59,29 @@ def process_smi(smi, idx, nullmol, outdir, write_individual=False):
     return mol
 
 if __name__ == "__main__":
-    smis = [i.rstrip() for i in open(sys.argv[1], "r").readlines()]
-    outdir = sys.argv[2]
+    logging.basicConfig(level=logging.INFO)
+
+    parser = argparse.ArgumentParser(
+        description="Embed molecules via rdkit",
+        usage="python {os.path.basename(__file__)} -s <smiles_file> -o <outdir>"
+    )
+    parser.add_argument("-s","--smifile",type=str,default=None)
+    parser.add_argument("-o","--outdir",type=str,default=None)
+    args = parser.parse_args()
+    
+    smis = [i.rstrip() for i in open(args.smifile, "r").readlines()]
+    outdir = args.outdir
 
     nullmol = Chem.MolFromSmiles("C")
     
-# Parallel execution
+    # Parallel execution
     results = Parallel(n_jobs=-1, verbose=5)(
-        delayed(process_smi)(smi, idx, nullmol, outdir)
-        for idx, smi in enumerate(smis)
+        delayed(process_smi)(smi, idx, nullmol, outdir, write_individual=True)
+        for idx, smi in enumerate(smis,1)
     )
 
     # Collect into single SDF
     writer = Chem.SDWriter(os.path.join(outdir, "all.sdf"))
     for count, mol in enumerate(results):
-        writer.write(mol)           
+        writer.write(mol)
     writer.close()

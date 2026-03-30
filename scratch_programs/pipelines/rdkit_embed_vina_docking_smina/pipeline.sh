@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Master directory for scripts
+script_dir=/home/andyt/DProjects/DMCTS/VINA_ChemTSv2/scratch_programs
+
+if [[ -d guest_embed || -d docked || -d smina_breakdown ]]; then
+    echo "directories already exist! Exiting ... "
+    exit
+else
+    mkdir guest_embed
+    mkdir docked
+    mkdir smina_breakdown
+fi     
+
+# IO Options
+in_smifile=hydrophobe_hcs.smi
+out_embeddir=$PWD/guest_embed
+in_hostfile=$script_dir/vina_docking/data/cb7.sdf
+in_vina=$script_dir/vina_docking/vinadock.inp
+out_vinadir=$PWD/docked
+in_sminadir=$out_vinadir
+out_sminadir=$PWD/smina_breakdown
+
+smi_num=$(wc -l < $in_smifile)
+
+# rdkit embed (NOTE: outputs mol_$i.sdf in outdir starting at index 1)
+echo "embedding all"
+python3 $script_dir/rdkit_embed/rdkit_embed.py -s $in_smifile -o $out_embeddir
+
+# vina docking
+for i in $(seq 1 "$smi_num"); do
+    echo "docking $i"
+    python3 $script_dir/vina_docking/dock_vina.py -n 1 -r $in_hostfile -l $out_embeddir/mol_$i.sdf -o $out_vinadir/mol_$i.sdf -i $in_vina -a $out_vinadir/affins.csv -d $out_vinadir/rmsds.csv -s $out_sminadir/smina.csv -b $out_sminadir/atom_terms_$i.csv
+    cat $out_vinadir/affins.csv >> $out_vinadir/affins_all.csv
+    rm $out_vinadir/affins.csv
+    cat $out_vinadir/rmsds.csv >> $out_vinadir/rmsds_all.csv
+    rm $out_vinadir/rmsds.csv
+    cat $out_sminadir/smina.csv >> $out_sminadir/smina_all.csv
+    rm $out_sminadir/smina.csv
+    
+    cat $out_vinadir/mol_$i.sdf >> $out_vinadir/all.sdf
+done
+
+python3 process_out.py

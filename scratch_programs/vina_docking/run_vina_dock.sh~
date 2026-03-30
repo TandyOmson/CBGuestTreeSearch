@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python3 /home/spine/DProjects/Dprograms_and_tests/AutoDockVina/vina_utility_prog/dock_vina.py -n 10 -r ./../cb6/cb6.sdf -l ./../benzene/benzene.sdf -o out.sdf

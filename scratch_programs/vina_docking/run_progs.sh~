@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#for i in {1..7}; do
+#    python3 dock_vina.py -n 1 -r data/cb7.sdf -l data/significant_guests/mol_$i.sdf -o results/significant_guests/mol_$i.sdf -i vinadock.inp -a results/significant_guests/affins.csv
+#done
+
+guestfile=/home/andyt/DProjects/Dsingle_system_binding/Ddft_descriptor_model/dft/Dpccp_top_molecules/mol_38_alt/docking/guest.sdf
+outdir=/home/andyt/DProjects/Dsingle_system_binding/Ddft_descriptor_model/dft/Dpccp_top_molecules/mol_38_alt/docking
+
+python3 dock_vina.py -n 10 -r data/cb7.sdf -l $guestfile -o $outdir/vina.sdf -i vinadock.inp -a $outdir/affins.csv
