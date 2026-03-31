@@ -332,8 +332,7 @@ def dock_smina(repsdffile, ligsdffile, inp, rundir):
         "--out=poses.sdf",
         "--log=smina.log",
         "--scoring=vinardo",            
-        "--atom_term_data",
-        "--minimize"
+        "--atom_term_data"
     ],
     cwd=rundir,
     stdout=open(f"{rundir}/smina.stdout", "w"),
@@ -387,7 +386,7 @@ def dock_smina(repsdffile, ligsdffile, inp, rundir):
 
         align_pose = PCA_align_pose(hostmol, one_guestmol)
         complexmols, affinities = MMFF94_vina_opt(align_pose, rundir)
-        rmsds, atom_data_dfs = None
+        rmsds, atom_data_dfs = [], []
 
     return complexmols, affinities, rmsds, atom_data_dfs
 
@@ -432,15 +431,17 @@ if __name__ == "__main__":
                 poses, affinities, rmsds, atom_data_dfs = dock_smina(input_sdf_rep, input_sdf_lig, inp, tmpdir)
                 if atom_data_dfs:
                     scoring_contributions = [df.drop(columns=["atomid", "el", "pos"]).astype(float).apply(sum, axis=0) for df in atom_data_dfs]
+                    pd.DataFrame(scoring_contributions[0]).T.to_csv(smina_output, header=False)
+                    atom_data_dfs[0].to_csv(atom_terms_output)
+                    
+            if rmsds:
+                rmsds_df = pd.DataFrame(rmsds, columns=[str(len(rmsds))], index=[i for i in range(1,len(rmsds)+1)]).T
+                rmsds_df.to_csv(rmsds_output, header=False)
+
             docked = write_out_confs(poses, writer, n_poses)
             print("Docked {} poses".format(docked))
 
             affinities_df = pd.DataFrame(affinities, columns=[str(len(affinities))], index=[i for i in range(1,len(affinities)+1)]).T
             affinities_df.to_csv(affins_output, header=False)
 
-            rmsds_df = pd.DataFrame(rmsds, columns=[str(len(rmsds))], index=[i for i in range(1,len(rmsds)+1)]).T
-            rmsds_df.to_csv(rmsds_output, header=False)
 
-            pd.DataFrame(scoring_contributions[0]).T.to_csv(smina_output, header=False)
-            
-            atom_data_dfs[0].to_csv(atom_terms_output)

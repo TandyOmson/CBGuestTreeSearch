@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-num_mols = max([int(i.split(",")[0]) for i in open("docked/affins_all.csv").readlines()])+1
+num_mols = max([int(i.split(",")[0]) if i.rstrip() != "FAIL" else 0 for i in open("docked/affins_all.csv").readlines()])+1
 
 df_affins = pd.read_csv("docked/affins_all.csv", names=[f"pose_{i}" for i in range(0,num_mols+1)], engine="python").drop(columns=["pose_0"])
 df_affins.index = range(1, len(df_affins)+1)

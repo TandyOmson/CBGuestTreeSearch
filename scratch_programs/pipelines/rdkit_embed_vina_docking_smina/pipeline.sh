@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Master directory for scripts
-script_dir=/home/andyt/DProjects/DMCTS/VINA_ChemTSv2/scratch_programs
+script_dir=/home/tcl25/CBGuestTreeSearch/scratch_programs
 
 if [[ -d guest_embed || -d docked || -d smina_breakdown ]]; then
     echo "directories already exist! Exiting ... "
@@ -13,7 +13,7 @@ else
 fi     
 
 # IO Options
-in_smifile=hydrophobe_hcs.smi
+in_smifile=hydros_minimal.smi
 out_embeddir=$PWD/guest_embed
 in_hostfile=$script_dir/vina_docking/data/cb7.sdf
 in_vina=$script_dir/vina_docking/vinadock.inp
@@ -31,13 +31,24 @@ python3 $script_dir/rdkit_embed/rdkit_embed.py -s $in_smifile -o $out_embeddir
 for i in $(seq 1 "$smi_num"); do
     echo "docking $i"
     python3 $script_dir/vina_docking/dock_vina.py -n 1 -r $in_hostfile -l $out_embeddir/mol_$i.sdf -o $out_vinadir/mol_$i.sdf -i $in_vina -a $out_vinadir/affins.csv -d $out_vinadir/rmsds.csv -s $out_sminadir/smina.csv -b $out_sminadir/atom_terms_$i.csv
-    cat $out_vinadir/affins.csv >> $out_vinadir/affins_all.csv
-    rm $out_vinadir/affins.csv
-    cat $out_vinadir/rmsds.csv >> $out_vinadir/rmsds_all.csv
-    rm $out_vinadir/rmsds.csv
-    cat $out_sminadir/smina.csv >> $out_sminadir/smina_all.csv
-    rm $out_sminadir/smina.csv
-    
+    if [[ -f $out_vinadir/affins.csv ]]; then
+	cat $out_vinadir/affins.csv >> $out_vinadir/affins_all.csv
+	rm $out_vinadir/affins.csv
+    else
+	echo "FAIL" >> $out_vinadir/affins_all.csv
+    fi
+    if [[ -f $out_vinadir/rmsds.csv ]]; then
+	cat $out_vinadir/rmsds.csv >> $out_vinadir/rmsds_all.csv
+	rm $out_vinadir/rmsds.csv
+    else
+	echo "FAIL" >> $out_vinadir/rmsds_all.csv
+    fi
+    if [[ -f $out_sminadir/smina.csv ]]; then
+	cat $out_sminadir/smina.csv >> $out_sminadir/smina_all.csv
+	rm $out_sminadir/smina.csv
+    else
+	echo "FAIL" >> $out_sminadir/smina_all.csv
+    fi
     cat $out_vinadir/mol_$i.sdf >> $out_vinadir/all.sdf
 done
 
