@@ -42,7 +42,7 @@ def add_nitrogen_charges(m):
                 bondcount = 0
                 for b in at.GetBonds():
                     bondcount += b.GetBondTypeAsDouble()
-                if int(boundcount) > 3:
+                if int(bondcount) > 3:
                     at.SetFormalCharge(1)
                 
     Chem.SanitizeMol(m)
